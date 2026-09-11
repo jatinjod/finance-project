@@ -142,7 +142,7 @@ async function apiRequest(endpoint, method = 'GET', data = null) {
         return {
             error:
                 'Cannot connect to server. ' +
-                'Make sure the backend is running on http://localhost:5000.',
+                'Make sure the backend is running on https://finance-project-t8zo.onrender.com',
             status_code: 0
         };
     }
