@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expenses — FinanceAI</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<div id="sidebar" class="sidebar"></div>
+
+<div class="main-content">
+  <div class="topbar">
+    <span class="topbar-title">Expenses</span>
+    <div class="topbar-right">
+      <button class="notif-btn">
+        <i class="bi bi-bell"></i>
+        <span id="notifBadge" class="notif-badge" style="display:none">0</span>
+      </button>
+      <button class="btn btn-danger btn-sm"
+              data-bs-toggle="modal" data-bs-target="#expenseModal"
+              onclick="openAdd()">
+        <i class="bi bi-plus-lg me-1"></i>Add Expense
+      </button>
+    </div>
+  </div>
+
+  <div class="page-body">
+    <!-- Summary -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-4">
+        <div class="summary-card">
+          <div class="summary-icon expense"><i class="bi bi-arrow-up-circle"></i></div>
+          <div>
+            <div class="summary-label">Filtered Total</div>
+            <div class="summary-value" id="filteredTotal">₹0</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="summary-card">
+          <div class="summary-icon neutral"><i class="bi bi-list-ul"></i></div>
+          <div>
+            <div class="summary-label">Records Shown</div>
+            <div class="summary-value" id="recordCount">0</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="summary-card">
+          <div class="summary-icon budget"><i class="bi bi-graph-down-arrow"></i></div>
+          <div>
+            <div class="summary-label">Average per Record</div>
+            <div class="summary-value" id="avgRecord">₹0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-3">
+      <div class="card-body py-2">
+        <div class="row g-2 align-items-center">
+          <div class="col-auto">
+            <select id="fMonth" class="form-select form-select-sm" style="width:140px">
+              <option value="">All Months</option>
+              <option value="1">January</option><option value="2">February</option>
+              <option value="3">March</option><option value="4">April</option>
+              <option value="5">May</option><option value="6">June</option>
+              <option value="7">July</option><option value="8">August</option>
+              <option value="9">September</option><option value="10">October</option>
+              <option value="11">November</option><option value="12">December</option>
+            </select>
+          </div>
+          <div class="col-auto">
+            <select id="fYear" class="form-select form-select-sm" style="width:100px">
+              <option value="">All</option>
+              <option value="2024">2024</option>
+              <option value="2025">2025</option>
+              <option value="2026">2026</option>
+            </select>
+          </div>
+          <div class="col-auto">
+            <select id="fCat" class="form-select form-select-sm" style="width:160px">
+              <option value="">All Categories</option>
+            </select>
+          </div>
+          <div class="col-auto">
+            <button class="btn btn-sm btn-primary" onclick="loadExpenses()">
+              <i class="bi bi-funnel me-1"></i>Filter
+            </button>
+            <button class="btn btn-sm btn-outline-secondary ms-1" onclick="clearFilters()">
+              Clear
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card">
+      <div class="card-header">Expense Records</div>
+      <div id="tableWrap">
+        <div class="text-center py-4">
+          <div class="spinner-border text-primary"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Add / Edit Expense -->
+<div class="modal fade" id="expenseModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalTitle">Add Expense</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="modalAlert"></div>
+        <div class="mb-3">
+          <label class="form-label">Amount (₹) *</label>
+          <input type="number" id="fAmount" class="form-control"
+                 placeholder="0.00" min="0.01" step="0.01">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Category *</label>
+          <select id="fCatModal" class="form-select">
+            <option value="">Select category</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Date *</label>
+          <input type="date" id="fDate" class="form-control">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Note <small class="text-muted">(optional)</small></label>
+          <input type="text" id="fNote" class="form-control"
+                 placeholder="e.g. Grocery shopping">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-danger" id="saveBtn" onclick="saveExpense()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index:9999">
+  <div id="toast" class="toast align-items-center text-white border-0">
+    <div class="d-flex">
+      <div class="toast-body"></div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto"
+              data-bs-dismiss="toast"></button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/sidebar.js"></script>
+<script>
+let editId = null;
+
+document.addEventListener('DOMContentLoaded', async () => {
+    if (!requireAuth()) return;
+    renderSidebar('expense');
+    loadNotifBadge();
+
+    const now = new Date();
+    document.getElementById('fMonth').value = now.getMonth() + 1;
+    document.getElementById('fYear').value  = now.getFullYear();
+    document.getElementById('fDate').value  = now.toISOString().split('T')[0];
+
+    await loadCategories();
+    await loadExpenses();
+});
+
+async function loadCategories() {
+    const res = await API.get('/api/categories?type=expense');
+    if (!res?.data) return;
+    res.data.forEach(c => {
+        document.getElementById('fCat').innerHTML      += `<option value="${c.id}">${c.name}</option>`;
+        document.getElementById('fCatModal').innerHTML += `<option value="${c.id}">${c.name}</option>`;
+    });
+}
+
+async function loadExpenses() {
+    const m = document.getElementById('fMonth').value;
+    const y = document.getElementById('fYear').value;
+    const c = document.getElementById('fCat').value;
+
+    let url = '/api/expenses?per_page=200';
+    if (m && y) url += `&month=${m}&year=${y}`;
+    if (c) url += `&category_id=${c}`;
+
+    document.getElementById('tableWrap').innerHTML =
+        `<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>`;
+
+    const res = await API.get(url);
+    if (!res || res.error) {
+        document.getElementById('tableWrap').innerHTML =
+            `<div class="p-4 text-danger text-center">${res?.error || 'Failed to load data'}</div>`;
+        return;
+    }
+
+    const records = res.data || [];
+    const total   = records.reduce((s, r) => s + Number(r.amount), 0);
+
+    document.getElementById('filteredTotal').textContent = formatCurrency(total);
+    document.getElementById('recordCount').textContent   = records.length;
+    document.getElementById('avgRecord').textContent     =
+        formatCurrency(records.length ? total / records.length : 0);
+
+    if (!records.length) {
+        document.getElementById('tableWrap').innerHTML = `
+            <div class="empty-state"><i class="bi bi-receipt"></i>
+            <p>No expense records found. Start tracking your spending!</p></div>`;
+        return;
+    }
+
+    document.getElementById('tableWrap').innerHTML = `
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Date</th><th>Category</th><th>Note</th>
+                <th>Amount</th><th class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${records.map(r => `
+                <tr>
+                  <td>${formatDate(r.date)}</td>
+                  <td>${r.category_name || '—'}</td>
+                  <td class="text-muted">${r.note || '—'}</td>
+                  <td class="text-danger fw-600">−${formatCurrency(r.amount)}</td>
+                  <td class="text-end">
+                    <button class="btn btn-sm btn-outline-primary me-1"
+                        onclick='openEdit(${JSON.stringify(r)})'>
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger"
+                        onclick="deleteExpense(${r.id})">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`;
+}
+
+function openAdd() {
+    editId = null;
+    document.getElementById('modalTitle').textContent = 'Add Expense';
+    document.getElementById('modalAlert').innerHTML   = '';
+    document.getElementById('fAmount').value   = '';
+    document.getElementById('fCatModal').value = '';
+    document.getElementById('fDate').value     = new Date().toISOString().split('T')[0];
+    document.getElementById('fNote').value     = '';
+}
+
+function openEdit(r) {
+    editId = r.id;
+    document.getElementById('modalTitle').textContent = 'Edit Expense';
+    document.getElementById('modalAlert').innerHTML   = '';
+    document.getElementById('fAmount').value   = r.amount;
+    document.getElementById('fCatModal').value = r.category_id;
+    document.getElementById('fDate').value     = r.date;
+    document.getElementById('fNote').value     = r.note || '';
+    new bootstrap.Modal(document.getElementById('expenseModal')).show();
+}
+
+async function saveExpense() {
+    const amount      = parseFloat(document.getElementById('fAmount').value);
+    const category_id = parseInt(document.getElementById('fCatModal').value);
+    const date        = document.getElementById('fDate').value;
+    const note        = document.getElementById('fNote').value.trim();
+
+    if (!amount || amount <= 0) { showAlert('modalAlert','Enter a valid amount.','warning'); return; }
+    if (!category_id)           { showAlert('modalAlert','Select a category.','warning'); return; }
+    if (!date)                  { showAlert('modalAlert','Select a date.','warning'); return; }
+
+    document.getElementById('saveBtn').disabled = true;
+
+    const res = editId
+        ? await API.put(`/api/expenses/${editId}`, { amount, category_id, date, note })
+        : await API.post('/api/expenses', { amount, category_id, date, note });
+
+    document.getElementById('saveBtn').disabled = false;
+
+    if (res?.status === 'success') {
+        bootstrap.Modal.getInstance(document.getElementById('expenseModal')).hide();
+        showToast(editId ? 'Expense updated!' : 'Expense added!');
+        loadExpenses();
+    } else {
+        showAlert('modalAlert', res?.error || 'Save failed.');
+    }
+}
+
+async function deleteExpense(id) {
+    if (!confirm('Delete this expense? This cannot be undone.')) return;
+    const res = await API.delete(`/api/expenses/${id}`);
+    if (res?.status === 'success') { showToast('Expense deleted.', 'warning'); loadExpenses(); }
+    else showToast(res?.error || 'Delete failed.', 'danger');
+}
+
+function clearFilters() {
+    document.getElementById('fMonth').value = '';
+    document.getElementById('fYear').value  = '';
+    document.getElementById('fCat').value   = '';
+    loadExpenses();
+}
+</script>
+</body>
+</html>

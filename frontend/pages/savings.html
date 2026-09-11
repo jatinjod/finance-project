@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Savings Goals — FinanceAI</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<div id="sidebar" class="sidebar"></div>
+
+<div class="main-content">
+  <div class="topbar">
+    <span class="topbar-title">Savings Goals</span>
+    <div class="topbar-right">
+      <button class="notif-btn">
+        <i class="bi bi-bell"></i>
+        <span id="notifBadge" class="notif-badge" style="display:none">0</span>
+      </button>
+      <button class="btn btn-primary btn-sm"
+              data-bs-toggle="modal" data-bs-target="#goalModal"
+              onclick="openAdd()">
+        <i class="bi bi-plus-lg me-1"></i>New Goal
+      </button>
+    </div>
+  </div>
+
+  <div class="page-body">
+
+    <!-- Summary -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-4">
+        <div class="summary-card">
+          <div class="summary-icon income"><i class="bi bi-piggy-bank"></i></div>
+          <div>
+            <div class="summary-label">Active Goals</div>
+            <div class="summary-value" id="activeCount">0</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="summary-card">
+          <div class="summary-icon budget"><i class="bi bi-trophy"></i></div>
+          <div>
+            <div class="summary-label">Completed Goals</div>
+            <div class="summary-value" id="completedCount">0</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="summary-card">
+          <div class="summary-icon balance"><i class="bi bi-bullseye"></i></div>
+          <div>
+            <div class="summary-label">Total Saved</div>
+            <div class="summary-value" id="totalSaved">₹0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Goals Grid -->
+    <div id="goalsContainer">
+      <div class="text-center py-5">
+        <div class="spinner-border text-primary"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal: Add / Edit Goal -->
+<div class="modal fade" id="goalModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalTitle">New Savings Goal</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="modalAlert"></div>
+        <div class="mb-3">
+          <label class="form-label">Goal Name *</label>
+          <input type="text" id="gName" class="form-control"
+                 placeholder="e.g. Buy a Laptop">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Target Amount (₹) *</label>
+          <input type="number" id="gTarget" class="form-control"
+                 placeholder="0.00" min="1">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Amount Saved So Far (₹)</label>
+          <input type="number" id="gSaved" class="form-control"
+                 placeholder="0.00" min="0" value="0">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Deadline <small class="text-muted">(optional)</small></label>
+          <input type="date" id="gDeadline" class="form-control">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" id="saveBtn" onclick="saveGoal()">Save Goal</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Update Saved Amount -->
+<div class="modal fade" id="updateModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Update Progress</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="updateAlert"></div>
+        <input type="hidden" id="updateId">
+        <div class="mb-2">
+          <label class="form-label">Current Saved Amount (₹)</label>
+          <input type="number" id="uSaved" class="form-control" min="0">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" onclick="updateProgress()">Update</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index:9999">
+  <div id="toast" class="toast align-items-center text-white border-0">
+    <div class="d-flex">
+      <div class="toast-body"></div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto"
+              data-bs-dismiss="toast"></button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/sidebar.js"></script>
+<script>
+let editId = null;
+
+document.addEventListener('DOMContentLoaded', async () => {
+    if (!requireAuth()) return;
+    renderSidebar('savings');
+    loadNotifBadge();
+    await loadGoals();
+});
+
+async function loadGoals() {
+    const res = await API.get('/api/savings');
+
+    if (!res || res.error) {
+        showToast(res?.error || 'Failed to load goals', 'danger');
+        return;
+    }
+
+    const goals     = res.data || [];
+    const active    = goals.filter(g => !g.is_complete);
+    const completed = goals.filter(g => g.is_complete);
+    const totalSaved = goals.reduce((s, g) => s + g.saved_amount, 0);
+
+    document.getElementById('activeCount').textContent    = active.length;
+    document.getElementById('completedCount').textContent = completed.length;
+    document.getElementById('totalSaved').textContent     = formatCurrency(totalSaved);
+
+    if (!goals.length) {
+        document.getElementById('goalsContainer').innerHTML = `
+            <div class="empty-state">
+                <i class="bi bi-piggy-bank"></i>
+                <p>No savings goals yet. Click "New Goal" to create your first one!</p>
+            </div>`;
+        return;
+    }
+
+    let html = '';
+
+    if (active.length) {
+        html += `<h6 class="fw-600 text-muted mb-3">Active Goals (${active.length})</h6>
+                 <div class="row g-3 mb-4">`;
+        html += active.map(g => renderGoalCard(g)).join('');
+        html += '</div>';
+    }
+
+    if (completed.length) {
+        html += `<h6 class="fw-600 text-success mb-3">
+                    <i class="bi bi-check-circle me-1"></i>Completed Goals (${completed.length})
+                 </h6>
+                 <div class="row g-3">`;
+        html += completed.map(g => renderGoalCard(g)).join('');
+        html += '</div>';
+    }
+
+    document.getElementById('goalsContainer').innerHTML = html;
+}
+
+function renderGoalCard(g) {
+    const daysLeft = g.deadline
+        ? Math.ceil((new Date(g.deadline) - new Date()) / 86400000)
+        : null;
+
+    return `
+        <div class="col-md-6 col-lg-4">
+          <div class="goal-card ${g.is_complete ? 'complete' : ''}">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <div>
+                <div class="fw-600">${g.name}</div>
+                ${g.is_complete
+                    ? '<span class="type-badge badge-safe"><i class="bi bi-check2 me-1"></i>Complete</span>'
+                    : daysLeft !== null
+                        ? `<small class="text-muted">${daysLeft > 0 ? daysLeft + ' days left' : 'Overdue'}</small>`
+                        : ''}
+              </div>
+              <div class="d-flex gap-1">
+                ${!g.is_complete ? `
+                  <button class="btn btn-sm btn-outline-primary border-0 p-1"
+                          onclick="openUpdateProgress(${g.id}, ${g.saved_amount})" title="Update">
+                    <i class="bi bi-plus-circle"></i>
+                  </button>` : ''}
+                <button class="btn btn-sm btn-outline-secondary border-0 p-1"
+                        onclick='openEdit(${JSON.stringify(g)})' title="Edit">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger border-0 p-1"
+                        onclick="deleteGoal(${g.id})" title="Delete">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-between small text-muted mb-2">
+              <span>${formatCurrency(g.saved_amount)} saved</span>
+              <span>Target: ${formatCurrency(g.target_amount)}</span>
+            </div>
+
+            <div class="progress budget-progress mb-2">
+              <div class="progress-bar ${g.is_complete ? 'bg-success' : 'bg-primary'}"
+                   style="width:${Math.min(g.progress_percentage,100)}%"></div>
+            </div>
+
+            <div class="d-flex justify-content-between">
+              <small class="fw-600 ${g.is_complete ? 'text-success' : 'text-primary'}">
+                ${g.progress_percentage.toFixed(1)}%
+              </small>
+              <small class="text-muted">
+                ${formatCurrency(g.remaining_amount)} to go
+              </small>
+            </div>
+          </div>
+        </div>`;
+}
+
+function openAdd() {
+    editId = null;
+    document.getElementById('modalTitle').textContent = 'New Savings Goal';
+    document.getElementById('modalAlert').innerHTML   = '';
+    document.getElementById('gName').value     = '';
+    document.getElementById('gTarget').value   = '';
+    document.getElementById('gSaved').value    = '0';
+    document.getElementById('gDeadline').value = '';
+}
+
+function openEdit(g) {
+    editId = g.id;
+    document.getElementById('modalTitle').textContent = 'Edit Savings Goal';
+    document.getElementById('modalAlert').innerHTML   = '';
+    document.getElementById('gName').value     = g.name;
+    document.getElementById('gTarget').value   = g.target_amount;
+    document.getElementById('gSaved').value    = g.saved_amount;
+    document.getElementById('gDeadline').value = g.deadline || '';
+    new bootstrap.Modal(document.getElementById('goalModal')).show();
+}
+
+function openUpdateProgress(id, currentSaved) {
+    document.getElementById('updateId').value  = id;
+    document.getElementById('uSaved').value    = currentSaved;
+    document.getElementById('updateAlert').innerHTML = '';
+    new bootstrap.Modal(document.getElementById('updateModal')).show();
+}
+
+async function saveGoal() {
+    const name          = document.getElementById('gName').value.trim();
+    const target_amount = parseFloat(document.getElementById('gTarget').value);
+    const saved_amount  = parseFloat(document.getElementById('gSaved').value) || 0;
+    const deadline      = document.getElementById('gDeadline').value || null;
+
+    if (!name)                     { showAlert('modalAlert','Enter a goal name.','warning'); return; }
+    if (!target_amount || target_amount <= 0) {
+        showAlert('modalAlert','Enter a valid target amount.','warning'); return;
+    }
+
+    document.getElementById('saveBtn').disabled = true;
+
+    const res = editId
+        ? await API.put(`/api/savings/${editId}`, { name, target_amount, saved_amount, deadline })
+        : await API.post('/api/savings', { name, target_amount, saved_amount, deadline });
+
+    document.getElementById('saveBtn').disabled = false;
+
+    if (res?.status === 'success') {
+        bootstrap.Modal.getInstance(document.getElementById('goalModal')).hide();
+        showToast(editId ? 'Goal updated!' : 'Goal created!');
+        loadGoals();
+    } else {
+        showAlert('modalAlert', res?.error || 'Save failed.');
+    }
+}
+
+async function updateProgress() {
+    const id    = document.getElementById('updateId').value;
+    const saved = parseFloat(document.getElementById('uSaved').value);
+
+    if (isNaN(saved) || saved < 0) {
+        showAlert('updateAlert','Enter a valid amount.','warning'); return;
+    }
+
+    const res = await API.put(`/api/savings/${id}`, { saved_amount: saved });
+    if (res?.status === 'success') {
+        bootstrap.Modal.getInstance(document.getElementById('updateModal')).hide();
+        showToast('Progress updated!');
+        loadGoals();
+    } else {
+        showAlert('updateAlert', res?.error || 'Update failed.');
+    }
+}
+
+async function deleteGoal(id) {
+    if (!confirm('Delete this savings goal?')) return;
+    const res = await API.delete(`/api/savings/${id}`);
+    if (res?.status === 'success') { showToast('Goal deleted.', 'warning'); loadGoals(); }
+    else showToast(res?.error || 'Delete failed.', 'danger');
+}
+</script>
+</body>
+</html>

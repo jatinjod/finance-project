@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Budget — FinanceAI</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<div id="sidebar" class="sidebar"></div>
+
+<div class="main-content">
+  <div class="topbar">
+    <span class="topbar-title">Budget Management</span>
+    <div class="topbar-right">
+      <button class="notif-btn">
+        <i class="bi bi-bell"></i>
+        <span id="notifBadge" class="notif-badge" style="display:none">0</span>
+      </button>
+      <button class="btn btn-primary btn-sm"
+              data-bs-toggle="modal" data-bs-target="#budgetModal">
+        <i class="bi bi-plus-lg me-1"></i>Set Budget
+      </button>
+    </div>
+  </div>
+
+  <div class="page-body">
+
+    <!-- Month Selector -->
+    <div class="card mb-4">
+      <div class="card-body py-2">
+        <div class="row g-2 align-items-center">
+          <div class="col-auto"><label class="form-label mb-0">Viewing:</label></div>
+          <div class="col-auto">
+            <select id="selMonth" class="form-select form-select-sm" style="width:130px"
+                    onchange="loadBudget()">
+              <option value="1">January</option><option value="2">February</option>
+              <option value="3">March</option><option value="4">April</option>
+              <option value="5">May</option><option value="6">June</option>
+              <option value="7">July</option><option value="8">August</option>
+              <option value="9">September</option><option value="10">October</option>
+              <option value="11">November</option><option value="12">December</option>
+            </select>
+          </div>
+          <div class="col-auto">
+            <select id="selYear" class="form-select form-select-sm" style="width:90px"
+                    onchange="loadBudget()">
+              <option value="2024">2024</option>
+              <option value="2025">2025</option>
+              <option value="2026">2026</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Overall Budget Card -->
+    <div class="card mb-4" id="overallCard">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        Overall Monthly Budget
+        <span id="overallStatus" class="badge bg-secondary">Not Set</span>
+      </div>
+      <div class="card-body" id="overallBody">
+        <div class="empty-state">
+          <i class="bi bi-wallet2"></i>
+          <p>No overall budget set for this month.<br>
+             Click "Set Budget" to get started.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Category Budgets -->
+    <div class="card">
+      <div class="card-header">Category Budgets</div>
+      <div class="card-body" id="catBody">
+        <div class="text-center py-3">
+          <div class="spinner-border text-primary"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal: Set Budget -->
+<div class="modal fade" id="budgetModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Set Budget</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="modalAlert"></div>
+        <div class="mb-3">
+          <label class="form-label">Budget Type</label>
+          <select id="bType" class="form-select" onchange="toggleCatField()">
+            <option value="overall">Overall Monthly Budget</option>
+            <option value="category">Category Budget</option>
+          </select>
+        </div>
+        <div class="mb-3" id="catFieldWrap" style="display:none">
+          <label class="form-label">Expense Category *</label>
+          <select id="bCat" class="form-select">
+            <option value="">Select category</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Amount (₹) *</label>
+          <input type="number" id="bAmount" class="form-control"
+                 placeholder="0.00" min="1" step="1">
+        </div>
+        <div class="row g-2">
+          <div class="col">
+            <label class="form-label">Month *</label>
+            <select id="bMonth" class="form-select">
+              <option value="1">January</option><option value="2">February</option>
+              <option value="3">March</option><option value="4">April</option>
+              <option value="5">May</option><option value="6">June</option>
+              <option value="7">July</option><option value="8">August</option>
+              <option value="9">September</option><option value="10">October</option>
+              <option value="11">November</option><option value="12">December</option>
+            </select>
+          </div>
+          <div class="col">
+            <label class="form-label">Year *</label>
+            <select id="bYear" class="form-select">
+              <option value="2024">2024</option>
+              <option value="2025">2025</option>
+              <option value="2026">2026</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" id="saveBtn" onclick="saveBudget()">Save Budget</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index:9999">
+  <div id="toast" class="toast align-items-center text-white border-0">
+    <div class="d-flex">
+      <div class="toast-body"></div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto"
+              data-bs-dismiss="toast"></button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/sidebar.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    if (!requireAuth()) return;
+    renderSidebar('budget');
+    loadNotifBadge();
+
+    const now = new Date();
+    document.getElementById('selMonth').value = now.getMonth() + 1;
+    document.getElementById('selYear').value  = now.getFullYear();
+    document.getElementById('bMonth').value   = now.getMonth() + 1;
+    document.getElementById('bYear').value    = now.getFullYear();
+
+    await loadExpenseCategories();
+    await loadBudget();
+});
+
+async function loadExpenseCategories() {
+    const res = await API.get('/api/categories?type=expense');
+    if (!res?.data) return;
+    res.data.forEach(c => {
+        document.getElementById('bCat').innerHTML += `<option value="${c.id}">${c.name}</option>`;
+    });
+}
+
+async function loadBudget() {
+    const month = document.getElementById('selMonth').value;
+    const year  = document.getElementById('selYear').value;
+
+    const res = await API.get(`/api/budget?month=${month}&year=${year}`);
+
+    if (!res || res.error) { showToast(res?.error || 'Failed to load budget', 'danger'); return; }
+
+    const { overall, categories } = res.data;
+
+    renderOverall(overall);
+    renderCategories(categories);
+}
+
+function renderOverall(o) {
+    const body   = document.getElementById('overallBody');
+    const status = document.getElementById('overallStatus');
+
+    if (!o) {
+        status.textContent  = 'Not Set';
+        status.className    = 'badge bg-secondary';
+        body.innerHTML      = `
+            <div class="empty-state">
+                <i class="bi bi-wallet2"></i>
+                <p>No overall budget set. Click "Set Budget" to add one.</p>
+            </div>`;
+        return;
+    }
+
+    const colorClass = o.status==='exceeded'?'danger': o.status==='warning'?'warning':'success';
+    status.textContent = o.status.charAt(0).toUpperCase() + o.status.slice(1);
+    status.className   = `badge bg-${colorClass}`;
+
+    body.innerHTML = `
+        <div class="row align-items-center g-3">
+          <div class="col-md-8">
+            <div class="d-flex justify-content-between mb-2">
+              <span>₹${o.spent_amount.toLocaleString('en-IN')} spent</span>
+              <span class="text-muted">of ₹${o.budget_amount.toLocaleString('en-IN')}</span>
+            </div>
+            <div class="progress" style="height:12px;border-radius:6px">
+              <div class="progress-bar bg-${colorClass}"
+                   style="width:${Math.min(o.percentage,100)}%"></div>
+            </div>
+            <div class="d-flex justify-content-between mt-1">
+              <small class="text-muted">${o.percentage.toFixed(1)}% used</small>
+              <small class="text-muted">₹${o.remaining.toLocaleString('en-IN')} remaining</small>
+            </div>
+          </div>
+          <div class="col-md-4 text-end">
+            <div class="fs-3 fw-700 text-${colorClass}">${o.percentage.toFixed(0)}%</div>
+            <button class="btn btn-sm btn-outline-danger mt-1"
+                    onclick="deleteBudget(${o.budget_id})">
+              <i class="bi bi-trash me-1"></i>Remove
+            </button>
+          </div>
+        </div>`;
+}
+
+function renderCategories(cats) {
+    const body = document.getElementById('catBody');
+
+    if (!cats?.length) {
+        body.innerHTML = `
+            <div class="empty-state">
+                <i class="bi bi-tags"></i>
+                <p>No category budgets set. Use "Set Budget" → Category Budget.</p>
+            </div>`;
+        return;
+    }
+
+    body.innerHTML = `<div class="row g-3">` + cats.map(c => {
+        const col = c.status==='exceeded'?'danger': c.status==='warning'?'warning':'success';
+        return `
+            <div class="col-md-6">
+              <div class="card border-0 bg-light">
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                      <div class="fw-600">${c.category_name}</div>
+                      <div class="text-muted small">
+                        ₹${c.spent_amount.toLocaleString('en-IN')} /
+                        ₹${c.budget_amount.toLocaleString('en-IN')}
+                      </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="type-badge badge-${c.status}">
+                        ${c.status.charAt(0).toUpperCase()+c.status.slice(1)}
+                      </span>
+                      <button class="btn btn-sm btn-outline-danger border-0 p-1"
+                              onclick="deleteBudget(${c.budget_id})" title="Remove">
+                        <i class="bi bi-x"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="progress budget-progress">
+                    <div class="progress-bar bg-${col}"
+                         style="width:${Math.min(c.percentage,100)}%"></div>
+                  </div>
+                  <div class="d-flex justify-content-between mt-1">
+                    <small class="text-muted">${c.percentage.toFixed(1)}%</small>
+                    <small class="text-muted">₹${c.remaining.toLocaleString('en-IN')} left</small>
+                  </div>
+                </div>
+              </div>
+            </div>`;
+    }).join('') + `</div>`;
+}
+
+function toggleCatField() {
+    const isCat = document.getElementById('bType').value === 'category';
+    document.getElementById('catFieldWrap').style.display = isCat ? 'block' : 'none';
+}
+
+async function saveBudget() {
+    const type   = document.getElementById('bType').value;
+    const amount = parseFloat(document.getElementById('bAmount').value);
+    const month  = parseInt(document.getElementById('bMonth').value);
+    const year   = parseInt(document.getElementById('bYear').value);
+    const catId  = type === 'category' ? parseInt(document.getElementById('bCat').value) : null;
+
+    if (!amount || amount <= 0) { showAlert('modalAlert','Enter a valid amount.','warning'); return; }
+    if (type === 'category' && !catId) {
+        showAlert('modalAlert','Select a category.','warning'); return;
+    }
+
+    document.getElementById('saveBtn').disabled = true;
+
+    const body = { amount, month, year };
+    if (catId) body.category_id = catId;
+
+    const res = await API.post('/api/budget', body);
+
+    document.getElementById('saveBtn').disabled = false;
+
+    if (res?.status === 'success') {
+        bootstrap.Modal.getInstance(document.getElementById('budgetModal')).hide();
+        showToast('Budget saved!');
+        loadBudget();
+    } else {
+        showAlert('modalAlert', res?.error || 'Failed to save budget.');
+    }
+}
+
+async function deleteBudget(id) {
+    if (!confirm('Remove this budget?')) return;
+    const res = await API.delete(`/api/budget/${id}`);
+    if (res?.status === 'success') { showToast('Budget removed.', 'warning'); loadBudget(); }
+    else showToast(res?.error || 'Delete failed.', 'danger');
+}
+</script>
+</body>
+</html>

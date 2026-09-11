@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Insights — FinanceAI</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<style>
+  .ai-gradient { background:linear-gradient(135deg,#4361ee,#3a0ca3); }
+  .ai-green    { background:linear-gradient(135deg,#2d6a4f,#1b4332); }
+  .ai-orange   { background:linear-gradient(135deg,#e76f51,#c1440e); }
+  .ai-purple   { background:linear-gradient(135deg,#7b2d8b,#4a0072); }
+
+  .health-ring {
+    width:120px; height:120px; border-radius:50%;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    margin:0 auto;
+  }
+  .health-A\\+ { background:conic-gradient(#16a34a calc(var(--pct)*1%),#e2e8f0 0); }
+  .health-A  { background:conic-gradient(#22c55e calc(var(--pct)*1%),#e2e8f0 0); }
+  .health-B  { background:conic-gradient(#4361ee calc(var(--pct)*1%),#e2e8f0 0); }
+  .health-C  { background:conic-gradient(#ca8a04 calc(var(--pct)*1%),#e2e8f0 0); }
+  .health-D  { background:conic-gradient(#f97316 calc(var(--pct)*1%),#e2e8f0 0); }
+  .health-F  { background:conic-gradient(#dc2626 calc(var(--pct)*1%),#e2e8f0 0); }
+
+  .pattern-card {
+    border-radius:10px; padding:14px 16px; margin-bottom:10px;
+    border-left:4px solid;
+  }
+  .pattern-positive { background:#f0fdf4; border-color:#16a34a; }
+  .pattern-warning  { background:#fef9c3; border-color:#ca8a04; }
+  .pattern-info     { background:#eff6ff; border-color:#4361ee; }
+  .pattern-alert    { background:#fef2f2; border-color:#dc2626; }
+
+  .score-bar { height:8px; border-radius:4px; }
+  .metric-row { padding:10px 0; border-bottom:1px solid #f1f5f9; }
+  .metric-row:last-child { border-bottom:none; }
+
+  .suggest-result {
+    background:#f0f4ff; border:1px solid #c7d2fe;
+    border-radius:8px; padding:12px 16px; margin-top:10px;
+  }
+  .tab-pill {
+    cursor:pointer; padding:6px 16px;
+    border-radius:20px; font-size:.82rem;
+    font-weight:500; border:1px solid #e2e8f0;
+    background:#fff; color:#64748b; transition:.15s;
+  }
+  .tab-pill.active { background:#4361ee; color:#fff; border-color:#4361ee; }
+</style>
+</head>
+<body>
+
+<div id="sidebar" class="sidebar"></div>
+
+<div class="main-content">
+  <div class="topbar">
+    <span class="topbar-title">AI Insights</span>
+    <div class="topbar-right">
+      <button class="notif-btn">
+        <i class="bi bi-bell"></i>
+        <span id="notifBadge" class="notif-badge" style="display:none">0</span>
+      </button>
+      <button class="btn btn-primary btn-sm" onclick="loadAI()">
+        <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="page-body">
+
+    <!-- Loading -->
+    <div id="loadingDiv" class="text-center py-5">
+      <div class="spinner-border text-primary mb-3" style="width:3rem;height:3rem"></div>
+      <h6 class="text-muted">Running AI analysis on your data...</h6>
+      <p class="text-muted small">This may take a few seconds</p>
+    </div>
+
+    <!-- Insufficient Data -->
+    <div id="noDataDiv" style="display:none">
+      <div class="card">
+        <div class="card-body text-center py-5">
+          <i class="bi bi-robot" style="font-size:3.5rem;color:#94a3b8"></i>
+          <h5 class="mt-3 fw-700">Not Enough Data Yet</h5>
+          <p class="text-muted" id="noDataMsg">
+            Add at least 10 expense records to unlock AI insights.
+          </p>
+          <div id="dataProgress" class="mb-4"></div>
+          <a href="expense.html" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i>Add Expenses
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Content -->
+    <div id="aiContent" style="display:none">
+
+      <!-- Tab Navigation -->
+      <div class="d-flex gap-2 mb-4 flex-wrap">
+        <span class="tab-pill active" onclick="switchTab('overview', this)">
+          <i class="bi bi-grid me-1"></i>Overview
+        </span>
+        <span class="tab-pill" onclick="switchTab('prediction', this)">
+          <i class="bi bi-graph-up me-1"></i>Prediction
+        </span>
+        <span class="tab-pill" onclick="switchTab('patterns', this)">
+          <i class="bi bi-activity me-1"></i>Patterns
+        </span>
+        <span class="tab-pill" onclick="switchTab('budget', this)">
+          <i class="bi bi-wallet2 me-1"></i>Budget AI
+        </span>
+        <span class="tab-pill" onclick="switchTab('anomalies', this)">
+          <i class="bi bi-exclamation-triangle me-1"></i>Anomalies
+        </span>
+        <span class="tab-pill" onclick="switchTab('health', this)">
+          <i class="bi bi-heart-pulse me-1"></i>Health Score
+        </span>
+        <span class="tab-pill" onclick="switchTab('tools', this)">
+          <i class="bi bi-tools me-1"></i>AI Tools
+        </span>
+      </div>
+
+      <!-- ═══ OVERVIEW TAB ═══ -->
+      <div id="tab-overview">
+        <div class="row g-3 mb-4">
+          <!-- Health Score Quick Card -->
+          <div class="col-md-4">
+            <div class="card h-100">
+              <div class="card-header">Financial Health</div>
+              <div class="card-body text-center">
+                <div id="healthRingWrap" class="mb-3">
+                  <div class="text-muted small">Calculating...</div>
+                </div>
+                <div id="healthInsightShort" class="text-muted small"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Prediction Quick Card -->
+          <div class="col-md-4">
+            <div class="ai-card ai-gradient h-100"
+                 style="padding:20px;border-radius:12px;color:#fff">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <i class="bi bi-graph-up-arrow fs-5"></i>
+                <span class="fw-600">Next Month Prediction</span>
+              </div>
+              <div id="quickPrediction" class="fs-2 fw-700">—</div>
+              <div id="quickPredTrend" class="opacity-75 small mt-1">—</div>
+              <div id="quickPredConf" class="mt-2">
+                <span class="badge" style="background:rgba(255,255,255,.2)">—</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Anomaly Quick Card -->
+          <div class="col-md-4">
+            <div class="ai-card ai-orange h-100"
+                 style="padding:20px;border-radius:12px;color:#fff">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <i class="bi bi-exclamation-triangle fs-5"></i>
+                <span class="fw-600">Anomalies</span>
+              </div>
+              <div id="quickAnomalyCount" class="fs-2 fw-700">0</div>
+              <div class="opacity-75 small mt-1" id="quickAnomalyMsg">
+                Scanning transactions...
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tips Row -->
+        <div class="card mb-4">
+          <div class="card-header d-flex align-items-center gap-2">
+            <i class="bi bi-lightbulb text-warning"></i>
+            AI-Generated Financial Tips
+          </div>
+          <div class="card-body" id="overviewTips">
+            <div class="text-muted small">Loading tips...</div>
+          </div>
+        </div>
+
+        <!-- Patterns Summary -->
+        <div class="card">
+          <div class="card-header d-flex align-items-center gap-2">
+            <i class="bi bi-activity text-primary"></i>
+            Spending Patterns Summary
+          </div>
+          <div class="card-body" id="overviewPatterns">
+            <div class="text-muted small">Loading patterns...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ PREDICTION TAB ═══ -->
+      <div id="tab-prediction" style="display:none">
+        <div class="row g-3 mb-4">
+          <div class="col-lg-6">
+            <div class="ai-card ai-gradient" style="padding:24px;border-radius:12px;color:#fff">
+              <div class="d-flex align-items-center gap-2 mb-3">
+                <i class="bi bi-graph-up-arrow fs-4"></i>
+                <h6 class="mb-0">Next Month Expense Prediction</h6>
+              </div>
+              <div id="predAmount" class="display-5 fw-700 mb-2">—</div>
+              <div id="predRange" class="opacity-75 small mb-3">—</div>
+
+              <div class="row g-2">
+                <div class="col-4">
+                  <div style="background:rgba(255,255,255,.15);border-radius:8px;padding:10px">
+                    <div class="opacity-75 small">Last Month</div>
+                    <div class="fw-600" id="predLastMonth">—</div>
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div style="background:rgba(255,255,255,.15);border-radius:8px;padding:10px">
+                    <div class="opacity-75 small">3-Month Avg</div>
+                    <div class="fw-600" id="predAvg3">—</div>
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div style="background:rgba(255,255,255,.15);border-radius:8px;padding:10px">
+                    <div class="opacity-75 small">Overall Avg</div>
+                    <div class="fw-600" id="predAvgAll">—</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">Prediction Details</div>
+              <div class="card-body" id="predDetails">
+                <div class="text-muted small">Loading...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">Model Accuracy Metrics</div>
+          <div class="card-body" id="predMetrics">
+            <div class="text-muted small">Loading...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ PATTERNS TAB ═══ -->
+      <div id="tab-patterns" style="display:none">
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <div class="card h-100">
+              <div class="card-header text-danger fw-600">
+                <i class="bi bi-exclamation-circle me-1"></i>Warnings
+              </div>
+              <div class="card-body" id="patternWarnings">
+                <div class="text-muted small">Loading...</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card h-100">
+              <div class="card-header text-success fw-600">
+                <i class="bi bi-check-circle me-1"></i>Positive Habits
+              </div>
+              <div class="card-body" id="patternPositives">
+                <div class="text-muted small">Loading...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="card-header">Detected Patterns</div>
+          <div class="card-body" id="patternList">
+            <div class="text-muted small">Loading...</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">Actionable Tips</div>
+          <div class="card-body" id="patternTips">
+            <div class="text-muted small">Loading...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ BUDGET AI TAB ═══ -->
+      <div id="tab-budget" style="display:none">
+        <div class="row g-3 mb-4">
+          <div class="col-md-5">
+            <div class="ai-card ai-green"
+                 style="padding:22px;border-radius:12px;color:#fff">
+              <div class="d-flex align-items-center gap-2 mb-3">
+                <i class="bi bi-wallet2 fs-4"></i>
+                <h6 class="mb-0">Recommended Monthly Budget</h6>
+              </div>
+              <div id="recOverallBudget" class="fs-2 fw-700">—</div>
+              <div class="opacity-75 small mt-1">Overall monthly recommendation</div>
+              <div class="mt-3 small" id="recBudgetBasis" style="opacity:.8">—</div>
+            </div>
+          </div>
+          <div class="col-md-7">
+            <div class="card h-100">
+              <div class="card-header">Category Budget Recommendations</div>
+              <div id="catBudgetRec" class="card-body">
+                <div class="text-muted small">Loading...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">Apply Recommendations</div>
+          <div class="card-body">
+            <p class="text-muted small mb-3">
+              Click any recommendation below to quickly set that budget.
+            </p>
+            <div id="applyBudgetBtns">
+              <div class="text-muted small">Loading...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ ANOMALIES TAB ═══ -->
+      <div id="tab-anomalies" style="display:none">
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
+            <div class="summary-card">
+              <div class="summary-icon expense"><i class="bi bi-exclamation-triangle"></i></div>
+              <div>
+                <div class="summary-label">Anomalies Found</div>
+                <div class="summary-value" id="anomCountCard">0</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="summary-card">
+              <div class="summary-icon neutral"><i class="bi bi-search"></i></div>
+              <div>
+                <div class="summary-label">Records Checked</div>
+                <div class="summary-value" id="anomTotalCard">0</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="summary-card">
+              <div class="summary-icon balance"><i class="bi bi-cpu"></i></div>
+              <div>
+                <div class="summary-label">Methods Used</div>
+                <div class="summary-value">3</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            Detection Methods
+            <span class="badge bg-primary">Consensus: 2+ Methods</span>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-4 text-center">
+                <i class="bi bi-diagram-3 fs-3 text-primary d-block mb-1"></i>
+                <div class="fw-600 small">Isolation Forest</div>
+                <div class="text-muted" style="font-size:.75rem">
+                  ML-based outlier detection
+                </div>
+              </div>
+              <div class="col-md-4 text-center">
+                <i class="bi bi-graph-up fs-3 text-warning d-block mb-1"></i>
+                <div class="fw-600 small">Z-Score</div>
+                <div class="text-muted" style="font-size:.75rem">
+                  Statistical deviation analysis
+                </div>
+              </div>
+              <div class="col-md-4 text-center">
+                <i class="bi bi-distribute-vertical fs-3 text-success d-block mb-1"></i>
+                <div class="fw-600 small">IQR Method</div>
+                <div class="text-muted" style="font-size:.75rem">
+                  Interquartile range fencing
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header" id="anomalyTableHeader">
+            Anomalous Transactions
+          </div>
+          <div id="anomalyTableBody">
+            <div class="text-center py-4">
+              <div class="spinner-border spinner-border-sm text-primary"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ HEALTH SCORE TAB ═══ -->
+      <div id="tab-health" style="display:none">
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
+            <div class="card text-center p-4">
+              <div id="healthRingLarge" class="mb-3"></div>
+              <div id="healthGradeLabel" class="fw-600 mb-1"></div>
+              <div id="healthGradeDesc" class="text-muted small"></div>
+            </div>
+          </div>
+          <div class="col-md-8">
+            <div class="card h-100">
+              <div class="card-header">Score Breakdown</div>
+              <div class="card-body" id="healthBreakdown">
+                <div class="text-muted small">Loading...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <i class="bi bi-lightbulb text-warning me-1"></i>Health Insights
+          </div>
+          <div class="card-body" id="healthInsights">
+            <div class="text-muted small">Loading...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ AI TOOLS TAB ═══ -->
+      <div id="tab-tools" style="display:none">
+
+        <!-- Category Suggester -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <i class="bi bi-tags text-primary me-1"></i>
+            Smart Category Suggester
+          </div>
+          <div class="card-body">
+            <p class="text-muted small mb-3">
+              Type a description of your expense and AI will suggest the best category.
+            </p>
+            <div class="d-flex gap-2">
+              <input type="text" id="noteInput" class="form-control"
+                     placeholder="e.g. lunch at pizza restaurant, uber to office, electricity bill...">
+              <button class="btn btn-primary" onclick="suggestCategory()" style="white-space:nowrap">
+                <i class="bi bi-magic me-1"></i>Suggest
+              </button>
+            </div>
+            <div id="suggestResult" style="display:none"></div>
+          </div>
+        </div>
+
+        <!-- Savings Projection Tool -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <i class="bi bi-calculator text-success me-1"></i>
+            Savings Goal Projector
+          </div>
+          <div class="card-body">
+            <p class="text-muted small mb-3">
+              Select a savings goal and enter how much you can save per month
+              to see when you'll reach it.
+            </p>
+            <div class="row g-2 mb-3">
+              <div class="col-md-5">
+                <label class="form-label">Savings Goal</label>
+                <select id="projGoalSelect" class="form-select">
+                  <option value="">Select a goal</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Monthly Saving (₹)</label>
+                <input type="number" id="projMonthlySaving" class="form-control"
+                       placeholder="e.g. 5000" min="1">
+              </div>
+              <div class="col-md-3 d-flex align-items-end">
+                <button class="btn btn-success w-100" onclick="projectSavings()">
+                  <i class="bi bi-calculator me-1"></i>Calculate
+                </button>
+              </div>
+            </div>
+            <div id="projResult" style="display:none"></div>
+          </div>
+        </div>
+
+        <!-- AI Data Stats -->
+        <div class="card">
+          <div class="card-header">
+            <i class="bi bi-database text-info me-1"></i>
+            AI Model Data Status
+          </div>
+          <div class="card-body" id="aiStatsBody">
+            <div class="text-muted small">Loading data stats...</div>
+          </div>
+        </div>
+
+      </div>
+
+    </div><!-- end aiContent -->
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index:9999">
+  <div id="toast" class="toast align-items-center text-white border-0">
+    <div class="d-flex">
+      <div class="toast-body"></div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto"
+              data-bs-dismiss="toast"></button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/sidebar.js"></script>
+<script>
+let aiData      = null;
+let activeTab   = 'overview';
+let savingsGoals = [];
+
+document.addEventListener('DOMContentLoaded', async () => {
+    if (!requireAuth()) return;
+    renderSidebar('ai');
+    loadNotifBadge();
+    await loadSavingsGoals();
+    await loadAI();
+    await loadAIStats();
+});
+
+// ── Load savings goals for projector ─────────
+async function loadSavingsGoals() {
+    const res = await API.get('/api/savings');
+    if (!res?.data) return;
+    savingsGoals = res.data.filter(g => !g.is_complete);
+    const sel   = document.getElementById('projGoalSelect');
+    savingsGoals.forEach(g => {
+        sel.innerHTML += `<option value="${g.id}">${g.name} (${formatCurrency(g.target_amount)})</option>`;
+    });
+}
+
+// ── Main AI Loader ────────────────────────────
+async function loadAI() {
+    document.getElementById('loadingDiv').style.display   = 'block';
+    document.getElementById('noDataDiv').style.display    = 'none';
+    document.getElementById('aiContent').style.display    = 'none';
+
+    const res = await API.get('/api/ai/insights');
+
+    document.getElementById('loadingDiv').style.display = 'none';
+
+    if (!res) {
+        showToast('Failed to connect to AI service.', 'danger');
+        return;
+    }
+
+    const d = res.data || res;
+
+    if (d.status === 'insufficient_data') {
+        document.getElementById('noDataDiv').style.display = 'block';
+        document.getElementById('noDataMsg').textContent   =
+            d.message || 'Add more expenses to unlock AI.';
+
+        const current = d.current_count || 0;
+        const minimum = d.minimum_required || 10;
+        const pct     = Math.min((current / minimum) * 100, 100);
+
+        document.getElementById('dataProgress').innerHTML = `
+            <div class="mb-2 text-muted small">${current} of ${minimum} records</div>
+            <div class="progress" style="height:8px;max-width:300px;margin:0 auto">
+              <div class="progress-bar bg-primary" style="width:${pct}%"></div>
+            </div>`;
+        return;
+    }
+
+    aiData = d;
+    document.getElementById('aiContent').style.display = 'block';
+    renderCurrentTab();
+}
+
+// ── Tab Switching ─────────────────────────────
+function switchTab(tab, el) {
+    document.querySelectorAll('.tab-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+
+    ['overview','prediction','patterns','budget','anomalies','health','tools'].forEach(t => {
+        document.getElementById(`tab-${t}`).style.display = t === tab ? 'block' : 'none';
+    });
+
+    activeTab = tab;
+    renderCurrentTab();
+}
+
+function renderCurrentTab() {
+    if (!aiData) return;
+    switch (activeTab) {
+        case 'overview':   renderOverview();   break;
+        case 'prediction': renderPrediction(); break;
+        case 'patterns':   renderPatterns();   break;
+        case 'budget':     renderBudget();     break;
+        case 'anomalies':  renderAnomalies();  break;
+        case 'health':     renderHealth();     break;
+        case 'tools':      break;
+    }
+}
+
+// ── OVERVIEW ─────────────────────────────────
+function renderOverview() {
+    const pred    = aiData.prediction;
+    const anomaly = aiData.anomalies;
+    const health  = aiData.health_score;
+    const tips    = aiData.tips || [];
+
+    // Quick prediction
+    if (pred?.status === 'success') {
+        document.getElementById('quickPrediction').textContent =
+            formatCurrency(pred.predicted_amount);
+        const tIcon = pred.trend === 'increasing' ? '📈' :
+                      pred.trend === 'decreasing' ? '📉' : '➡️';
+        document.getElementById('quickPredTrend').textContent =
+            `${tIcon} ${pred.trend} trend`;
+        document.getElementById('quickPredConf').innerHTML =
+            `<span class="badge" style="background:rgba(255,255,255,.2)">
+               Confidence: ${pred.confidence}
+             </span>
+             <span class="badge ms-1" style="background:rgba(255,255,255,.2)">
+               Model: ${pred.model_used}
+             </span>`;
+    }
+
+    // Anomaly quick
+    const aCount = anomaly?.anomalies_found || 0;
+    document.getElementById('quickAnomalyCount').textContent = aCount;
+    document.getElementById('quickAnomalyMsg').textContent   =
+        aCount > 0
+            ? `${aCount} unusual transaction(s) found`
+            : 'All transactions look normal';
+
+    // Health ring
+    if (health?.total_score !== undefined) {
+        const score = health.total_score;
+        const grade = health.grade;
+        const color = {
+            'A+':'#16a34a','A':'#22c55e','B':'#4361ee',
+            'C':'#ca8a04','D':'#f97316','F':'#dc2626'
+        }[grade] || '#64748b';
+
+        document.getElementById('healthRingWrap').innerHTML = `
+            <div style="width:100px;height:100px;border-radius:50%;
+                        background:conic-gradient(${color} ${score}%,#e2e8f0 0);
+                        display:flex;align-items:center;justify-content:center;
+                        margin:0 auto">
+              <div style="width:76px;height:76px;border-radius:50%;
+                          background:#fff;display:flex;flex-direction:column;
+                          align-items:center;justify-content:center">
+                <div style="font-size:1.5rem;font-weight:700;color:${color}">${grade}</div>
+                <div style="font-size:.7rem;color:#64748b">${score}/100</div>
+              </div>
+            </div>`;
+
+        const shortInsight = health.insights?.[0] || '';
+        document.getElementById('healthInsightShort').textContent =
+            shortInsight.replace(/[🌟👍⚠️🚨❗✅]/g, '').trim();
+    }
+
+    // Tips
+    const tipsEl = document.getElementById('overviewTips');
+    if (tips.length) {
+        tipsEl.innerHTML = tips.map(tip => `
+            <div class="tip-item">
+              <i class="bi bi-lightbulb text-warning me-2"></i>${tip}
+            </div>`).join('');
+    } else {
+        tipsEl.innerHTML = `
+            <div class="tip-item">
+              <i class="bi bi-check2-circle text-success me-2"></i>
+              Your finances look healthy! No specific tips at this time.
+            </div>`;
+    }
+
+    // Patterns summary
+    const patterns = aiData.patterns?.patterns || [];
+    const pEl      = document.getElementById('overviewPatterns');
+    if (patterns.length) {
+        pEl.innerHTML = patterns.slice(0, 4).map(p => {
+            const cls = p.severity === 'positive' || p.type === 'category_decrease'
+                ? 'pattern-positive'
+                : p.severity === 'high' ? 'pattern-alert' : 'pattern-info';
+            return `<div class="pattern-card ${cls} small mb-2">${p.description}</div>`;
+        }).join('');
+    } else {
+        pEl.innerHTML = '<div class="text-muted small">No patterns detected yet.</div>';
+    }
+}
+
+// ── PREDICTION ───────────────────────────────
+function renderPrediction() {
+    const pred = aiData.prediction;
+    if (!pred || pred.status !== 'success') {
+        document.getElementById('predAmount').textContent = 'Not enough data';
+        return;
+    }
+
+    document.getElementById('predAmount').textContent =
+        formatCurrency(pred.predicted_amount);
+    document.getElementById('predRange').textContent  =
+        `Range: ${formatCurrency(pred.lower_bound)} – ${formatCurrency(pred.upper_bound)}`;
+    document.getElementById('predLastMonth').textContent =
+        formatCurrency(pred.last_month_actual);
+    document.getElementById('predAvg3').textContent =
+        formatCurrency(pred.average_last_3);
+    document.getElementById('predAvgAll').textContent =
+        formatCurrency(pred.overall_average);
+
+    const trendColor = pred.trend === 'increasing' ? '#fca5a5' :
+                       pred.trend === 'decreasing' ? '#86efac' : '#e2e8f0';
+
+    document.getElementById('predDetails').innerHTML = `
+        <div class="metric-row">
+          <div class="d-flex justify-content-between">
+            <span class="text-muted small">Trend Direction</span>
+            <span class="fw-600" style="color:${
+                pred.trend === 'increasing' ? '#dc2626' :
+                pred.trend === 'decreasing' ? '#16a34a' : '#64748b'
+            }">${pred.trend.charAt(0).toUpperCase()+pred.trend.slice(1)}</span>
+          </div>
+        </div>
+        <div class="metric-row">
+          <div class="d-flex justify-content-between">
+            <span class="text-muted small">Model Used</span>
+            <span class="fw-600">${pred.model_used} regression</span>
+          </div>
+        </div>
+        <div class="metric-row">
+          <div class="d-flex justify-content-between">
+            <span class="text-muted small">Confidence Level</span>
+            <span class="fw-600">${pred.confidence}</span>
+          </div>
+        </div>
+        <div class="metric-row">
+          <div class="d-flex justify-content-between">
+            <span class="text-muted small">Data Points</span>
+            <span class="fw-600">${pred.months_of_data} months</span>
+          </div>
+        </div>
+        <div class="mt-3 p-3 rounded" style="background:#f0f4ff;font-size:.83rem">
+          <i class="bi bi-info-circle text-primary me-1"></i>
+          ${pred.interpretation}
+        </div>`;
+
+    const metrics = pred.metrics || {};
+    let metricHtml = '<div class="row g-3">';
+
+    if (metrics.linear) {
+        metricHtml += `
+            <div class="col-md-6">
+              <div class="card border-0 bg-light p-3 text-center">
+                <div class="fw-600 mb-2">Linear Regression</div>
+                <div class="row g-2">
+                  <div class="col-6">
+                    <div class="text-muted small">R² Score</div>
+                    <div class="fw-700 text-primary">${metrics.linear.r2}</div>
+                  </div>
+                  <div class="col-6">
+                    <div class="text-muted small">MAE</div>
+                    <div class="fw-700">${formatCurrency(metrics.linear.mae)}</div>
+                  </div>
+                </div>
+              </div>
+            </div>`;
+    }
+    if (metrics.polynomial) {
+        metricHtml += `
+            <div class="col-md-6">
+              <div class="card border-0 bg-light p-3 text-center">
+                <div class="fw-600 mb-2">Polynomial Regression</div>
+                <div class="row g-2">
+                  <div class="col-6">
+                    <div class="text-muted small">R² Score</div>
+                    <div class="fw-700 text-primary">${metrics.polynomial.r2}</div>
+                  </div>
+                  <div class="col-6">
+                    <div class="text-muted small">MAE</div>
+                    <div class="fw-700">${formatCurrency(metrics.polynomial.mae)}</div>
+                  </div>
+                </div>
+              </div>
+            </div>`;
+    }
+
+    metricHtml += '</div>';
+    metricHtml += `
+        <div class="mt-3 small text-muted">
+          <strong>R² Score:</strong> Closer to 1.0 means the model fits your data well.<br>
+          <strong>MAE:</strong> Mean Absolute Error — average prediction error amount.
+        </div>`;
+
+    document.getElementById('predMetrics').innerHTML = metricHtml;
+}
+
+// ── PATTERNS ─────────────────────────────────
+function renderPatterns() {
+    const pData     = aiData.patterns || {};
+    const patterns  = pData.patterns  || [];
+    const tips      = pData.tips      || [];
+    const warnings  = pData.warnings  || [];
+    const positives = pData.positives || [];
+
+    // Warnings
+    const wEl = document.getElementById('patternWarnings');
+    wEl.innerHTML = warnings.length
+        ? warnings.map(w => `
+            <div class="pattern-card pattern-warning small mb-2">
+              <i class="bi bi-exclamation-triangle me-1 text-warning"></i>${w}
+            </div>`).join('')
+        : '<div class="text-success small"><i class="bi bi-check-circle me-1"></i>No warnings detected.</div>';
+
+    // Positives
+    const pEl = document.getElementById('patternPositives');
+    pEl.innerHTML = positives.length
+        ? positives.map(p => `
+            <div class="pattern-card pattern-positive small mb-2">
+              <i class="bi bi-check-circle me-1 text-success"></i>${p}
+            </div>`).join('')
+        : '<div class="text-muted small">Keep adding data to see your positive habits.</div>';
+
+    // Pattern list
+    const listEl = document.getElementById('patternList');
+    if (patterns.length) {
+        listEl.innerHTML = patterns.map(p => {
+            const cls = p.type === 'category_decrease' || p.severity === 'positive'
+                ? 'pattern-positive'
+                : p.severity === 'high' ? 'pattern-alert'
+                : p.type === 'recurring' ? 'pattern-info'
+                : 'pattern-warning';
+
+            const icon = p.type === 'weekend_spending' ? 'bi-calendar-week' :
+                         p.type === 'category_increase' ? 'bi-arrow-up-circle' :
+                         p.type === 'category_decrease' ? 'bi-arrow-down-circle' :
+                         p.type === 'top_category' ? 'bi-trophy' :
+                         p.type === 'recurring' ? 'bi-arrow-repeat' : 'bi-activity';
+
+            return `
+                <div class="pattern-card ${cls} mb-2">
+                  <div class="d-flex align-items-start gap-2">
+                    <i class="bi ${icon} mt-1 flex-shrink-0"></i>
+                    <div>
+                      <div class="fw-600 small">${p.description}</div>
+                      ${p.change_percent !== undefined
+                          ? `<small class="text-muted">Change: ${p.change_percent > 0 ? '+' : ''}${p.change_percent}%</small>`
+                          : ''}
+                    </div>
+                  </div>
+                </div>`;
+        }).join('');
+    } else {
+        listEl.innerHTML = '<div class="text-muted small">No patterns detected yet.</div>';
+    }
+
+    // Tips
+    const tipsEl = document.getElementById('patternTips');
+    tipsEl.innerHTML = tips.length
+        ? tips.map(t => `
+            <div class="tip-item">
+              <i class="bi bi-lightbulb text-warning me-2"></i>${t}
+            </div>`).join('')
+        : '<div class="tip-item"><i class="bi bi-check2-circle text-success me-2"></i>No specific tips — great spending habits!</div>';
+}
+
+// ── BUDGET AI ─────────────────────────────────
+function renderBudget() {
+    const rec = aiData.recommendations;
+
+    if (!rec || rec.status !== 'success') {
+        document.getElementById('catBudgetRec').innerHTML =
+            '<div class="text-muted small">Insufficient data for recommendations.</div>';
+        return;
+    }
+
+    const overall = rec.overall || {};
+    document.getElementById('recOverallBudget').textContent =
+        formatCurrency(overall.recommended_overall || 0);
+    document.getElementById('recBudgetBasis').textContent =
+        rec.note || '';
+
+    const cats = rec.category_recommendations || [];
+    if (cats.length) {
+        document.getElementById('catBudgetRec').innerHTML = `
+            <div class="table-responsive">
+              <table class="table table-sm mb-0">
+                <thead>
+                  <tr>
+                    <th>Category</th><th>Avg Spending</th>
+                    <th>P75 Spending</th><th>Recommended</th><th>Basis</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${cats.map(c => `
+                    <tr>
+                      <td class="fw-600">${c.category_name}</td>
+                      <td class="text-muted">${formatCurrency(c.average_spending)}</td>
+                      <td class="text-muted">${formatCurrency(c.p75_spending)}</td>
+                      <td class="text-success fw-600">${formatCurrency(c.recommended_budget)}</td>
+                      <td class="text-muted" style="font-size:.75rem">${c.basis}</td>
+                    </tr>`).join('')}
+                </tbody>
+              </table>
+            </div>`;
+
+        // Quick apply buttons
+        const now = new Date();
+        document.getElementById('applyBudgetBtns').innerHTML =
+            `<div class="d-flex flex-wrap gap-2">
+              <button class="btn btn-outline-success btn-sm"
+                      onclick="applyOverallBudget(${overall.recommended_overall})">
+                <i class="bi bi-plus-circle me-1"></i>
+                Set Overall ₹${Math.round(overall.recommended_overall).toLocaleString('en-IN')}
+              </button>
+              ${cats.slice(0, 5).map(c => `
+                <button class="btn btn-outline-primary btn-sm"
+                        data-cat-name="${c.category_name}"
+                        onclick="applyCatBudget('${c.category_name}', ${c.recommended_budget})">
+                  ${c.category_name}: ₹${Math.round(c.recommended_budget).toLocaleString('en-IN')}
+                </button>`).join('')}
+            </div>`;
+    }
+}
+
+async function applyOverallBudget(amount) {
+    const now = new Date();
+    const res = await API.post('/api/budget', {
+        amount: Math.round(amount),
+        month: now.getMonth() + 1,
+        year: now.getFullYear()
+    });
+    if (res?.status === 'success') {
+        showToast(`Overall budget set to ${formatCurrency(amount)}!`);
+    } else {
+        showToast(res?.error || 'Failed to set budget.', 'danger');
+    }
+}
+
+async function applyCatBudget(catName, amount) {
+    // Find category ID
+    const res = await API.get(`/api/categories?type=expense`);
+    const cat = res?.data?.find(c => c.name === catName);
+    if (!cat) { showToast('Category not found.', 'danger'); return; }
+
+    const now  = new Date();
+    const res2 = await API.post('/api/budget', {
+        amount:      Math.round(amount),
+        category_id: cat.id,
+        month:       now.getMonth() + 1,
+        year:        now.getFullYear()
+    });
+    if (res2?.status === 'success') {
+        showToast(`${catName} budget set to ${formatCurrency(amount)}!`);
+    } else {
+        showToast(res2?.error || 'Failed to set budget.', 'danger');
+    }
+}
+
+// ── ANOMALIES ─────────────────────────────────
+function renderAnomalies() {
+    const anom = aiData.anomalies || {};
+
+    document.getElementById('anomCountCard').textContent =
+        anom.anomalies_found || 0;
+    document.getElementById('anomTotalCard').textContent =
+        anom.total_checked   || 0;
+
+    const header = document.getElementById('anomalyTableHeader');
+    const body   = document.getElementById('anomalyTableBody');
+
+    if (!anom.anomalies?.length) {
+        header.innerHTML = `
+            <i class="bi bi-check-circle text-success me-1"></i>
+            No Unusual Transactions Found`;
+        body.innerHTML   = `
+            <div class="d-flex align-items-center gap-3 p-4">
+              <i class="bi bi-check2-circle text-success fs-2"></i>
+              <div>
+                <div class="fw-600">All Clear!</div>
+                <div class="text-muted small">
+                  All ${anom.total_checked || 0} transactions look normal.
+                </div>
+              </div>
+            </div>`;
+        return;
+    }
+
+    header.innerHTML = `
+        <i class="bi bi-exclamation-triangle text-danger me-1"></i>
+        ${anom.anomalies_found} Unusual Transaction(s) Detected`;
+
+    body.innerHTML = `
+        <div class="p-3 bg-warning bg-opacity-10 border-bottom small">
+          <i class="bi bi-info-circle me-1"></i>
+          Detected by consensus of ${anom.methods_used?.join(', ') || '3 methods'}.
+          Threshold: normal vs. ${anom.thresholds ? 'avg ₹' + (anom.thresholds.mean || 0).toLocaleString('en-IN') : ''}.
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm mb-0">
+            <thead>
+              <tr>
+                <th>Date</th><th>Category</th><th>Amount</th>
+                <th>Detected By</th><th>Note</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${anom.anomalies.map(a => `
+                <tr>
+                  <td class="text-muted small">${a.date}</td>
+                  <td>${a.category_name}</td>
+                  <td class="text-danger fw-600">${formatCurrency(a.amount)}</td>
+                  <td>
+                    ${a.detected_by?.map(m =>
+                        `<span class="badge bg-warning text-dark me-1" style="font-size:.65rem">${m}</span>`
+                    ).join('') || '—'}
+                  </td>
+                  <td class="text-muted small">${a.reason || '—'}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`;
+}
+
+// ── HEALTH SCORE ─────────────────────────────
+function renderHealth() {
+    const health = aiData.health_score;
+    if (!health || health.status === 'error') {
+        document.getElementById('healthBreakdown').innerHTML =
+            '<div class="text-muted small">Unable to compute health score.</div>';
+        return;
+    }
+
+    const score = health.total_score;
+    const grade = health.grade;
+    const color = {
+        'A+':'#16a34a','A':'#22c55e','B':'#4361ee',
+        'C':'#ca8a04','D':'#f97316','F':'#dc2626'
+    }[grade] || '#64748b';
+
+    // Large ring
+    document.getElementById('healthRingLarge').innerHTML = `
+        <div style="width:140px;height:140px;border-radius:50%;
+                    background:conic-gradient(${color} ${score}%,#e2e8f0 0);
+                    display:flex;align-items:center;justify-content:center;
+                    margin:0 auto">
+          <div style="width:108px;height:108px;border-radius:50%;
+                      background:#fff;display:flex;flex-direction:column;
+                      align-items:center;justify-content:center">
+            <div style="font-size:2rem;font-weight:800;color:${color}">${grade}</div>
+            <div style="font-size:.75rem;color:#64748b">${score}/100</div>
+          </div>
+        </div>`;
+
+    document.getElementById('healthGradeLabel').textContent =
+        health.grade_description || '';
+    document.getElementById('healthGradeDesc').textContent = '';
+
+    // Breakdown
+    const bk = health.breakdown || [];
+    const statusColor = { excellent:'#16a34a', good:'#4361ee',
+                          fair:'#ca8a04', poor:'#dc2626', neutral:'#94a3b8' };
+
+    document.getElementById('healthBreakdown').innerHTML = bk.map(item => {
+        const pct = (item.score / item.max_score) * 100;
+        const col = statusColor[item.status] || '#94a3b8';
+        return `
+            <div class="metric-row">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="fw-600 small">${item.metric}</span>
+                <span style="color:${col};font-weight:700;font-size:.85rem">
+                  ${item.score}/${item.max_score}
+                </span>
+              </div>
+              <div class="progress score-bar mb-1">
+                <div class="progress-bar" style="width:${pct}%;background:${col}"></div>
+              </div>
+              <div class="text-muted" style="font-size:.73rem">${item.description}</div>
+            </div>`;
+    }).join('');
+
+    // Insights
+    document.getElementById('healthInsights').innerHTML =
+        (health.insights || []).map(ins => `
+            <div class="tip-item mb-2">${ins}</div>`).join('') ||
+        '<div class="text-muted small">No insights available.</div>';
+}
+
+// ── AI TOOLS ─────────────────────────────────
+async function suggestCategory() {
+    const note   = document.getElementById('noteInput').value.trim();
+    const resDiv = document.getElementById('suggestResult');
+
+    if (!note) {
+        showToast('Enter a description first.', 'warning');
+        return;
+    }
+
+    resDiv.style.display = 'block';
+    resDiv.innerHTML     = '<div class="suggest-result"><div class="spinner-border spinner-border-sm text-primary me-2"></div>Analyzing...</div>';
+
+    const res = await API.post('/api/ai/suggest-category', { note });
+
+    if (!res || res.error) {
+        resDiv.innerHTML = `<div class="suggest-result text-danger">${res?.error || 'Failed'}</div>`;
+        return;
+    }
+
+    const d = res.data;
+    resDiv.innerHTML = `
+        <div class="suggest-result">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <i class="bi bi-magic text-primary"></i>
+            <span class="fw-600">Suggested Category:</span>
+            <span class="badge bg-primary fs-6">${d.suggested}</span>
+            <span class="text-muted small">(${d.confidence}% confidence)</span>
+          </div>
+          ${d.alternatives?.length
+              ? `<div class="text-muted small">
+                   Other options: ${d.alternatives.map(a =>
+                       `<span class="badge bg-light text-dark me-1">${a}</span>`
+                   ).join('')}
+                 </div>`
+              : ''}
+          <div class="text-muted small mt-1">Method: ${d.method}</div>
+        </div>`;
+}
+
+async function projectSavings() {
+    const goalId  = document.getElementById('projGoalSelect').value;
+    const monthly = parseFloat(document.getElementById('projMonthlySaving').value);
+    const resDiv  = document.getElementById('projResult');
+
+    if (!goalId)              { showToast('Select a savings goal.', 'warning'); return; }
+    if (!monthly || monthly < 1) { showToast('Enter a valid monthly saving amount.', 'warning'); return; }
+
+    resDiv.style.display = 'block';
+    resDiv.innerHTML     = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-success"></div></div>';
+
+    const res = await API.get(
+        `/api/ai/savings-projection/${goalId}?monthly_saving=${monthly}`
+    );
+
+    if (!res?.data || res.data.status === 'error') {
+        resDiv.innerHTML = `<div class="text-danger small">${res?.data?.error || 'Projection failed.'}</div>`;
+        return;
+    }
+
+    const d = res.data;
+
+    if (d.status === 'already_complete') {
+        resDiv.innerHTML = `
+            <div class="alert alert-success">
+              <i class="bi bi-check-circle me-1"></i>
+              This goal is already complete!
+            </div>`;
+        return;
+    }
+
+    resDiv.innerHTML = `
+        <div class="card border-success mt-3">
+          <div class="card-header text-success fw-600">
+            <i class="bi bi-graph-up-arrow me-1"></i>Projection Result
+          </div>
+          <div class="card-body">
+            <div class="row g-3 mb-3">
+              <div class="col-md-3 text-center">
+                <div class="text-muted small">Goal</div>
+                <div class="fw-700">${d.goal_name}</div>
+              </div>
+              <div class="col-md-3 text-center">
+                <div class="text-muted small">Remaining</div>
+                <div class="fw-700 text-danger">${formatCurrency(d.remaining)}</div>
+              </div>
+              <div class="col-md-3 text-center">
+                <div class="text-muted small">Months Needed</div>
+                <div class="fw-700 text-primary">${d.months_to_complete}</div>
+              </div>
+              <div class="col-md-3 text-center">
+                <div class="text-muted small">Completion By</div>
+                <div class="fw-700 text-success">${d.completion_date}</div>
+              </div>
+            </div>
+            <div class="text-muted small">
+              Saving ${formatCurrency(d.monthly_saving)}/month,
+              you will reach your goal in approximately
+              <strong>${d.months_to_complete} months</strong>
+              by <strong>${d.completion_date}</strong>.
+            </div>
+          </div>
+        </div>`;
+}
+
+async function loadAIStats() {
+    const res = await API.get('/api/ai/stats');
+    const el  = document.getElementById('aiStatsBody');
+    if (!el) return;
+
+    if (!res?.data) {
+        el.innerHTML = '<div class="text-muted small">Unable to load stats.</div>';
+        return;
+    }
+
+    const d = res.data;
+    const s = d.data_stats || {};
+
+    el.innerHTML = `
+        <div class="row g-3">
+          <div class="col-md-3 text-center">
+            <div class="text-muted small">Total Records</div>
+            <div class="fw-700 fs-4 text-primary">${s.total_records || 0}</div>
+          </div>
+          <div class="col-md-3 text-center">
+            <div class="text-muted small">Months of Data</div>
+            <div class="fw-700 fs-4 text-primary">${s.total_months || 0}</div>
+          </div>
+          <div class="col-md-3 text-center">
+            <div class="text-muted small">Categories Used</div>
+            <div class="fw-700 fs-4 text-primary">${s.unique_categories || 0}</div>
+          </div>
+          <div class="col-md-3 text-center">
+            <div class="text-muted small">AI Ready</div>
+            <div class="fw-700 fs-4 ${d.sufficient ? 'text-success' : 'text-warning'}">
+              ${d.sufficient ? '✅ Yes' : '⚠️ No'}
+            </div>
+          </div>
+        </div>
+        ${s.date_range ? `
+          <hr>
+          <div class="row g-2 text-muted small">
+            <div class="col-md-4">
+              <strong>Data Range:</strong> ${s.date_range.from} to ${s.date_range.to}
+            </div>
+            <div class="col-md-4">
+              <strong>Avg per record:</strong> ${formatCurrency(s.avg_per_record)}
+            </div>
+            <div class="col-md-4">
+              <strong>Total analyzed:</strong> ${formatCurrency(s.total_spent)}
+            </div>
+          </div>` : ''}
+        <div class="mt-2 p-2 rounded small" style="background:#f0f4ff">
+          <i class="bi bi-info-circle text-primary me-1"></i>
+          ${d.message}
+        </div>`;
+}
+</script>
+</body>
+</html>

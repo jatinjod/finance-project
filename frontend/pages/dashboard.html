@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — FinanceAI</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<div id="sidebar" class="sidebar"></div>
+
+<div class="main-content">
+  <!-- Topbar -->
+  <div class="topbar">
+    <span class="topbar-title">Dashboard</span>
+    <div class="topbar-right">
+      <div class="dropdown">
+        <button class="notif-btn" data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="bi bi-bell"></i>
+          <span id="notifBadge" class="notif-badge" style="display:none">0</span>
+        </button>
+        <div class="dropdown-menu dropdown-menu-end notif-panel p-0">
+          <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+            <strong style="font-size:.88rem">Notifications</strong>
+            <button class="btn btn-link btn-sm p-0 text-decoration-none"
+                    onclick="markAllRead()">Mark all read</button>
+          </div>
+          <div id="notifList">
+            <div class="text-center p-3 text-muted small">Loading...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-body">
+    <!-- Loading -->
+    <div id="loadingDiv" class="text-center py-5">
+      <div class="spinner-border text-primary mb-2"></div>
+      <p class="text-muted">Loading dashboard...</p>
+    </div>
+
+    <!-- Content -->
+    <div id="dashContent" style="display:none">
+
+      <!-- Summary Cards -->
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-3">
+          <div class="summary-card">
+            <div class="summary-icon income"><i class="bi bi-arrow-down-circle"></i></div>
+            <div>
+              <div class="summary-label">Total Income</div>
+              <div class="summary-value" id="sIncome">₹0</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-lg-3">
+          <div class="summary-card">
+            <div class="summary-icon expense"><i class="bi bi-arrow-up-circle"></i></div>
+            <div>
+              <div class="summary-label">Total Expenses</div>
+              <div class="summary-value" id="sExpense">₹0</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-lg-3">
+          <div class="summary-card">
+            <div class="summary-icon balance"><i class="bi bi-wallet2"></i></div>
+            <div>
+              <div class="summary-label">Balance</div>
+              <div class="summary-value" id="sBalance">₹0</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-lg-3">
+          <div class="summary-card">
+            <div class="summary-icon budget"><i class="bi bi-bullseye"></i></div>
+            <div>
+              <div class="summary-label">Budget Used</div>
+              <div class="summary-value" id="sBudget">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="row g-3 mb-4">
+        <div class="col-lg-7">
+          <div class="card">
+            <div class="card-header">Income vs Expenses — Last 6 Months</div>
+            <div class="card-body">
+              <div class="chart-container">
+                <canvas id="barChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-5">
+          <div class="card h-100">
+            <div class="card-header">Spending by Category</div>
+            <div class="card-body d-flex align-items-center justify-content-center">
+              <div id="pieWrap" class="chart-container w-100">
+                <canvas id="pieChart"></canvas>
+              </div>
+              <div id="pieEmpty" class="empty-state d-none">
+                <i class="bi bi-pie-chart"></i>
+                <p>No expense data this month</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Budget Status + Recent Transactions -->
+      <div class="row g-3 mb-4">
+        <div class="col-lg-4">
+          <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              Budget Status
+              <a href="budget.html" class="btn btn-sm btn-outline-primary">Manage</a>
+            </div>
+            <div class="card-body" id="budgetBody">
+              <div class="empty-state">
+                <i class="bi bi-wallet2"></i>
+                <p>No budget set.<br><a href="budget.html">Set budget →</a></p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-8">
+          <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              Recent Transactions
+              <a href="transactions.html" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Date</th><th>Category</th><th>Note</th>
+                    <th>Type</th><th>Amount</th>
+                  </tr>
+                </thead>
+                <tbody id="recentTxBody">
+                  <tr>
+                    <td colspan="5" class="text-center text-muted py-4">
+                      No transactions yet
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Savings Goals -->
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          Active Savings Goals
+          <a href="savings.html" class="btn btn-sm btn-outline-primary">View All</a>
+        </div>
+        <div class="card-body" id="goalsBody">
+          <div class="empty-state">
+            <i class="bi bi-piggy-bank"></i>
+            <p>No active goals.<br><a href="savings.html">Create a goal →</a></p>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end dashContent -->
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index:9999">
+  <div id="toast" class="toast align-items-center text-white border-0">
+    <div class="d-flex">
+      <div class="toast-body"></div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto"
+              data-bs-dismiss="toast"></button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/sidebar.js"></script>
+<script>
+let barChart = null, pieChart = null;
+
+document.addEventListener('DOMContentLoaded', async () => {
+    if (!requireAuth()) return;
+    renderSidebar('dashboard');
+    loadNotifBadge();
+    loadNotifications();
+    await loadDashboard();
+});
+
+async function loadDashboard() {
+    const res = await API.get('/api/dashboard/summary');
+
+    document.getElementById('loadingDiv').style.display   = 'none';
+    document.getElementById('dashContent').style.display  = 'block';
+
+    if (!res || res.error) { showToast(res?.error || 'Failed to load dashboard', 'danger'); return; }
+
+    const { summary, budget_status, recent_transactions,
+            category_chart, monthly_chart, active_goals } = res.data;
+
+    // Summary
+    document.getElementById('sIncome').textContent  = formatCurrency(summary.total_income);
+    document.getElementById('sExpense').textContent = formatCurrency(summary.total_expenses);
+    const balEl = document.getElementById('sBalance');
+    balEl.textContent = formatCurrency(summary.balance);
+    balEl.style.color = summary.balance >= 0 ? '#16a34a' : '#dc2626';
+
+    if (budget_status.overall) {
+        const p = budget_status.overall.percentage;
+        const el = document.getElementById('sBudget');
+        el.textContent = p.toFixed(0) + '%';
+        el.style.color = p >= 100 ? '#dc2626' : p >= 80 ? '#ca8a04' : '#16a34a';
+    }
+
+    // Charts
+    renderBarChart(monthly_chart);
+    renderPieChart(category_chart);
+    renderBudget(budget_status);
+    renderRecentTx(recent_transactions);
+    renderGoals(active_goals);
+    loadAnalyticsSummary();
+}
+
+function renderBarChart(data) {
+    if (!data?.length) return;
+    const ctx = document.getElementById('barChart').getContext('2d');
+    if (barChart) barChart.destroy();
+    barChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: data.map(d => d.month),
+            datasets: [
+                { label:'Income',   data: data.map(d => d.income),
+                  backgroundColor:'rgba(22,163,74,.8)',  borderRadius:4 },
+                { label:'Expenses', data: data.map(d => d.expenses),
+                  backgroundColor:'rgba(220,38,38,.8)',  borderRadius:4 }
+            ]
+        },
+        options: {
+            responsive:true, maintainAspectRatio:false,
+            plugins:{ legend:{ position:'top' } },
+            scales:{ y:{ beginAtZero:true,
+                ticks:{ callback: v => '₹'+v.toLocaleString('en-IN') }}}
+        }
+    });
+}
+
+function renderPieChart(data) {
+    const wrap  = document.getElementById('pieWrap');
+    const empty = document.getElementById('pieEmpty');
+    if (!data?.length) {
+        wrap.style.display = 'none'; empty.classList.remove('d-none'); return;
+    }
+    wrap.style.display = 'block'; empty.classList.add('d-none');
+    const ctx = document.getElementById('pieChart').getContext('2d');
+    if (pieChart) pieChart.destroy();
+    pieChart = new Chart(ctx, {
+        type:'doughnut',
+        data:{
+            labels: data.map(d => d.category),
+            datasets:[{ data: data.map(d => d.amount),
+                backgroundColor:['#4361ee','#e63946','#2d6a4f','#e9c46a',
+                                  '#f4a261','#457b9d','#a8dadc','#1d3557'] }]
+        },
+        options:{ responsive:true, maintainAspectRatio:false,
+            plugins:{ legend:{ position:'bottom', labels:{ font:{size:11} } } } }
+    });
+}
+
+function renderBudget(bs) {
+    const body = document.getElementById('budgetBody');
+    if (!bs.overall && !bs.categories.length) return;
+
+    let html = '';
+    if (bs.overall) {
+        const o = bs.overall;
+        const c = o.status==='exceeded'?'danger': o.status==='warning'?'warning':'success';
+        html += `
+            <div class="mb-3">
+              <div class="d-flex justify-content-between mb-1">
+                <small class="fw-600">Overall</small>
+                <small class="text-${c}">${formatCurrency(o.spent_amount)} / ${formatCurrency(o.budget_amount)}</small>
+              </div>
+              <div class="progress budget-progress">
+                <div class="progress-bar bg-${c}" style="width:${Math.min(o.percentage,100)}%"></div>
+              </div>
+              <small class="text-muted">${o.percentage.toFixed(1)}% used</small>
+            </div>`;
+    }
+    bs.categories.slice(0,5).forEach(c => {
+        const col = c.status==='exceeded'?'danger': c.status==='warning'?'warning':'success';
+        html += `
+            <div class="mb-2">
+              <div class="d-flex justify-content-between mb-1">
+                <small>${c.category_name}</small>
+                <small class="text-${col}">${c.percentage.toFixed(0)}%</small>
+              </div>
+              <div class="progress budget-progress">
+                <div class="progress-bar bg-${col}" style="width:${Math.min(c.percentage,100)}%"></div>
+              </div>
+            </div>`;
+    });
+    body.innerHTML = html;
+}
+
+function renderRecentTx(txs) {
+    const body = document.getElementById('recentTxBody');
+    if (!txs?.length) return;
+    body.innerHTML = txs.map(t => {
+        const isInc = t.transaction_type === 'income';
+        return `<tr>
+            <td>${formatDate(t.date)}</td>
+            <td>${t.category_name||'—'}</td>
+            <td class="text-muted">${t.note||'—'}</td>
+            <td><span class="type-badge ${isInc?'badge-income':'badge-expense'}">
+                ${isInc?'Income':'Expense'}</span></td>
+            <td class="fw-600 ${isInc?'text-success':'text-danger'}">
+                ${isInc?'+':'−'}${formatCurrency(t.amount)}</td>
+        </tr>`;
+    }).join('');
+}
+
+function renderGoals(goals) {
+    const body = document.getElementById('goalsBody');
+    if (!goals?.length) return;
+    body.innerHTML = `<div class="row g-3">` + goals.map(g => `
+        <div class="col-md-4">
+          <div class="goal-card">
+            <div class="fw-600 mb-1">${g.name}</div>
+            <div class="text-muted small mb-2">
+              ${formatCurrency(g.saved_amount)} of ${formatCurrency(g.target_amount)}
+            </div>
+            <div class="progress budget-progress mb-1">
+              <div class="progress-bar bg-primary"
+                   style="width:${g.progress_percentage}%"></div>
+            </div>
+            <small class="text-muted">${g.progress_percentage.toFixed(1)}% complete</small>
+          </div>
+        </div>`).join('') + `</div>`;
+}
+
+async function loadAnalyticsSummary() {
+    const now   = new Date();
+    const month = now.getMonth() + 1;
+    const year  = now.getFullYear();
+
+    const res = await API.get(
+        `/api/analytics/monthly?month=${month}&year=${year}`
+    );
+
+    if (!res?.data) return;
+
+    const d  = res.data;
+    const el = document.getElementById('analyticsWidget');
+    if (!el) return;
+
+    el.innerHTML = `
+        <div class="row g-2">
+          <div class="col-6">
+            <div class="stat-box p-2 rounded"
+                 style="background:#f0fdf4;border-left:3px solid #16a34a">
+              <div class="small text-muted">Income Records</div>
+              <div class="fw-600">${d.income_count}</div>
+            </div>
+          </div>
+
+          <div class="col-6">
+            <div class="stat-box p-2 rounded"
+                 style="background:#fef2f2;border-left:3px solid #dc2626">
+              <div class="small text-muted">Expense Records</div>
+              <div class="fw-600">${d.expense_count}</div>
+            </div>
+          </div>
+
+          <div class="col-6">
+            <div class="stat-box p-2 rounded"
+                 style="background:#eff6ff;border-left:3px solid #2563eb">
+              <div class="small text-muted">Avg Expense</div>
+              <div class="fw-600">${formatCurrency(d.expense_stats?.mean)}</div>
+            </div>
+          </div>
+
+          <div class="col-6">
+            <div class="stat-box p-2 rounded"
+                 style="background:#fefce8;border-left:3px solid #ca8a04">
+              <div class="small text-muted">Savings Rate</div>
+              <div class="fw-600">${d.savings_rate}%</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-2 text-end">
+          <a href="reports.html"
+             class="btn btn-sm btn-link p-0 text-decoration-none">
+            Full Analytics →
+          </a>
+        </div>`;
+}
+
+async function loadNotifications() {
+    const res  = await API.get('/api/notifications?is_read=false');
+    const list = document.getElementById('notifList');
+    if (!res?.data?.length) {
+        list.innerHTML = `<div class="text-center p-3 text-muted small">No new notifications</div>`;
+        return;
+    }
+    list.innerHTML = res.data.slice(0,6).map(n => `
+        <div class="notif-item ${!n.is_read?'unread':''}">
+          <div style="font-size:.82rem;font-weight:500">${n.message}</div>
+          <div class="text-muted" style="font-size:.7rem">${formatDate(n.created_at)}</div>
+        </div>`).join('');
+}
+
+async function markAllRead() {
+    await API.put('/api/notifications/read-all');
+    loadNotifBadge();
+    loadNotifications();
+    showToast('All notifications marked as read.');
+}
+</script>
+</body>
+</html>

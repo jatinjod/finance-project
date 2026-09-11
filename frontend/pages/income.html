@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Income — FinanceAI</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<div id="sidebar" class="sidebar"></div>
+
+<div class="main-content">
+  <div class="topbar">
+    <span class="topbar-title">Income</span>
+    <div class="topbar-right">
+      <button class="notif-btn">
+        <i class="bi bi-bell"></i>
+        <span id="notifBadge" class="notif-badge" style="display:none">0</span>
+      </button>
+      <button class="btn btn-primary btn-sm"
+              data-bs-toggle="modal" data-bs-target="#incomeModal"
+              onclick="openAdd()">
+        <i class="bi bi-plus-lg me-1"></i>Add Income
+      </button>
+    </div>
+  </div>
+
+  <div class="page-body">
+    <!-- Summary -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-4">
+        <div class="summary-card">
+          <div class="summary-icon income"><i class="bi bi-arrow-down-circle"></i></div>
+          <div>
+            <div class="summary-label">Filtered Total</div>
+            <div class="summary-value" id="filteredTotal">₹0</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="summary-card">
+          <div class="summary-icon neutral"><i class="bi bi-list-ul"></i></div>
+          <div>
+            <div class="summary-label">Records Shown</div>
+            <div class="summary-value" id="recordCount">0</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="summary-card">
+          <div class="summary-icon balance"><i class="bi bi-graph-up-arrow"></i></div>
+          <div>
+            <div class="summary-label">Average per Record</div>
+            <div class="summary-value" id="avgRecord">₹0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-3">
+      <div class="card-body py-2">
+        <div class="row g-2 align-items-center">
+          <div class="col-auto">
+            <select id="fMonth" class="form-select form-select-sm" style="width:140px">
+              <option value="">All Months</option>
+              ${(() => {
+                const months = ['January','February','March','April','May','June',
+                    'July','August','September','October','November','December'];
+                return months.map((m,i) =>
+                    `<option value="${i+1}">${m}</option>`).join('');
+              })()}
+            </select>
+          </div>
+          <div class="col-auto">
+            <select id="fYear" class="form-select form-select-sm" style="width:100px">
+              <option value="">All Years</option>
+              <option value="2024">2024</option>
+              <option value="2025">2025</option>
+              <option value="2026">2026</option>
+            </select>
+          </div>
+          <div class="col-auto">
+            <select id="fCat" class="form-select form-select-sm" style="width:160px">
+              <option value="">All Categories</option>
+            </select>
+          </div>
+          <div class="col-auto">
+            <button class="btn btn-sm btn-primary" onclick="loadIncome()">
+              <i class="bi bi-funnel me-1"></i>Filter
+            </button>
+            <button class="btn btn-sm btn-outline-secondary ms-1" onclick="clearFilters()">
+              Clear
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card">
+      <div class="card-header">Income Records</div>
+      <div id="tableWrap">
+        <div class="text-center py-4">
+          <div class="spinner-border text-primary"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Add / Edit Income -->
+<div class="modal fade" id="incomeModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalTitle">Add Income</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="modalAlert"></div>
+        <div class="mb-3">
+          <label class="form-label">Amount (₹) *</label>
+          <input type="number" id="fAmount" class="form-control"
+                 placeholder="0.00" min="0.01" step="0.01">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Category *</label>
+          <select id="fCatModal" class="form-select">
+            <option value="">Select category</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Date *</label>
+          <input type="date" id="fDate" class="form-control">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Note <small class="text-muted">(optional)</small></label>
+          <input type="text" id="fNote" class="form-control"
+                 placeholder="e.g. Monthly salary">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" id="saveBtn" onclick="saveIncome()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index:9999">
+  <div id="toast" class="toast align-items-center text-white border-0">
+    <div class="d-flex">
+      <div class="toast-body"></div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto"
+              data-bs-dismiss="toast"></button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/sidebar.js"></script>
+<script>
+let editId = null;
+
+document.addEventListener('DOMContentLoaded', async () => {
+    if (!requireAuth()) return;
+    renderSidebar('income');
+    loadNotifBadge();
+
+    // Default filter to current month
+    const now = new Date();
+    document.getElementById('fMonth').value = now.getMonth() + 1;
+    document.getElementById('fYear').value  = now.getFullYear();
+    document.getElementById('fDate').value  = now.toISOString().split('T')[0];
+
+    await loadCategories();
+    await loadIncome();
+});
+
+async function loadCategories() {
+    const res = await API.get('/api/categories?type=income');
+    if (!res?.data) return;
+    res.data.forEach(c => {
+        document.getElementById('fCat').innerHTML     += `<option value="${c.id}">${c.name}</option>`;
+        document.getElementById('fCatModal').innerHTML += `<option value="${c.id}">${c.name}</option>`;
+    });
+}
+
+async function loadIncome() {
+    const m = document.getElementById('fMonth').value;
+    const y = document.getElementById('fYear').value;
+    const c = document.getElementById('fCat').value;
+
+    let url = '/api/income?per_page=200';
+    if (m && y) url += `&month=${m}&year=${y}`;
+    if (c) url += `&category_id=${c}`;
+
+    document.getElementById('tableWrap').innerHTML =
+        `<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>`;
+
+    const res = await API.get(url);
+
+    if (!res || res.error) {
+        document.getElementById('tableWrap').innerHTML =
+            `<div class="p-4 text-danger text-center">${res?.error || 'Failed to load data'}</div>`;
+        return;
+    }
+
+    const records = res.data || [];
+    updateSummary(records);
+    renderTable(records);
+}
+
+function updateSummary(records) {
+    const total = records.reduce((s, r) => s + Number(r.amount), 0);
+    document.getElementById('filteredTotal').textContent = formatCurrency(total);
+    document.getElementById('recordCount').textContent   = records.length;
+    document.getElementById('avgRecord').textContent     =
+        formatCurrency(records.length ? total / records.length : 0);
+}
+
+function renderTable(records) {
+    if (!records.length) {
+        document.getElementById('tableWrap').innerHTML = `
+            <div class="empty-state"><i class="bi bi-inbox"></i>
+            <p>No income records found. Add your first income!</p></div>`;
+        return;
+    }
+
+    document.getElementById('tableWrap').innerHTML = `
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Date</th><th>Category</th><th>Note</th>
+                <th>Amount</th><th class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${records.map(r => `
+                <tr>
+                  <td>${formatDate(r.date)}</td>
+                  <td>${r.category_name || '—'}</td>
+                  <td class="text-muted">${r.note || '—'}</td>
+                  <td class="text-success fw-600">+${formatCurrency(r.amount)}</td>
+                  <td class="text-end">
+                    <button class="btn btn-sm btn-outline-primary me-1"
+                        onclick='openEdit(${JSON.stringify(r)})'>
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger"
+                        onclick="deleteIncome(${r.id})">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`;
+}
+
+function openAdd() {
+    editId = null;
+    document.getElementById('modalTitle').textContent = 'Add Income';
+    document.getElementById('modalAlert').innerHTML   = '';
+    document.getElementById('fAmount').value   = '';
+    document.getElementById('fCatModal').value = '';
+    document.getElementById('fDate').value     = new Date().toISOString().split('T')[0];
+    document.getElementById('fNote').value     = '';
+}
+
+function openEdit(r) {
+    editId = r.id;
+    document.getElementById('modalTitle').textContent = 'Edit Income';
+    document.getElementById('modalAlert').innerHTML   = '';
+    document.getElementById('fAmount').value   = r.amount;
+    document.getElementById('fCatModal').value = r.category_id;
+    document.getElementById('fDate').value     = r.date;
+    document.getElementById('fNote').value     = r.note || '';
+    new bootstrap.Modal(document.getElementById('incomeModal')).show();
+}
+
+async function saveIncome() {
+    const amount      = parseFloat(document.getElementById('fAmount').value);
+    const category_id = parseInt(document.getElementById('fCatModal').value);
+    const date        = document.getElementById('fDate').value;
+    const note        = document.getElementById('fNote').value.trim();
+
+    if (!amount || amount <= 0) { showAlert('modalAlert','Enter a valid amount.','warning'); return; }
+    if (!category_id)           { showAlert('modalAlert','Select a category.','warning'); return; }
+    if (!date)                  { showAlert('modalAlert','Select a date.','warning'); return; }
+
+    document.getElementById('saveBtn').disabled = true;
+
+    const res = editId
+        ? await API.put(`/api/income/${editId}`, { amount, category_id, date, note })
+        : await API.post('/api/income', { amount, category_id, date, note });
+
+    document.getElementById('saveBtn').disabled = false;
+
+    if (res?.status === 'success') {
+        bootstrap.Modal.getInstance(document.getElementById('incomeModal')).hide();
+        showToast(editId ? 'Income updated!' : 'Income added!');
+        loadIncome();
+    } else {
+        showAlert('modalAlert', res?.error || 'Save failed.');
+    }
+}
+
+async function deleteIncome(id) {
+    if (!confirm('Delete this income record? This cannot be undone.')) return;
+    const res = await API.delete(`/api/income/${id}`);
+    if (res?.status === 'success') { showToast('Income deleted.', 'warning'); loadIncome(); }
+    else showToast(res?.error || 'Delete failed.', 'danger');
+}
+
+function clearFilters() {
+    document.getElementById('fMonth').value = '';
+    document.getElementById('fYear').value  = '';
+    document.getElementById('fCat').value   = '';
+    loadIncome();
+}
+
+function formatCurrency(value) {
+    return '₹' + Number(value || 0).toLocaleString('en-IN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+function formatDate(dateValue) {
+    if (!dateValue) return '';
+    return String(dateValue).slice(0, 10);
+}
+</script>
+</body>
+</html>

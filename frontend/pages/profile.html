@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profile — FinanceAI</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<div id="sidebar" class="sidebar"></div>
+
+<div class="main-content">
+  <div class="topbar">
+    <span class="topbar-title">My Profile</span>
+    <div class="topbar-right">
+      <button class="notif-btn">
+        <i class="bi bi-bell"></i>
+        <span id="notifBadge" class="notif-badge" style="display:none">0</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="page-body">
+    <div class="row g-4">
+
+      <!-- Left: Profile Card + Notifications -->
+      <div class="col-md-5 col-lg-4">
+        <div class="card text-center p-4">
+          <div class="mb-3">
+            <div id="avatarLarge"
+                 style="width:80px;height:80px;border-radius:50%;
+                        background:#4361ee;display:flex;align-items:center;
+                        justify-content:center;color:#fff;font-size:1.8rem;
+                        font-weight:700;margin:0 auto">
+              U
+            </div>
+          </div>
+          <h5 id="pName" class="mb-1">—</h5>
+          <p id="pEmail" class="text-muted small mb-2">—</p>
+          <span id="pRole" class="badge bg-primary mb-3">User</span>
+          <p id="pJoined" class="text-muted small mb-0">Member since —</p>
+        </div>
+
+        <div class="card mt-3">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            Recent Notifications
+            <button class="btn btn-link btn-sm p-0 text-decoration-none"
+                    onclick="markAllRead()">Mark all read</button>
+          </div>
+          <div id="notifListBody">
+            <div class="text-center p-3 text-muted small">Loading...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Edit Forms -->
+      <div class="col-md-7 col-lg-8">
+
+        <!-- Edit Profile Info -->
+        <div class="card mb-4">
+          <div class="card-header">Edit Profile Information</div>
+          <div class="card-body">
+            <div id="profileAlert"></div>
+            <div class="mb-3">
+              <label class="form-label">Full Name</label>
+              <input type="text" id="eName" class="form-control"
+                     placeholder="Your full name">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Email Address</label>
+              <input type="email" id="eEmail" class="form-control"
+                     placeholder="your@email.com">
+            </div>
+            <button class="btn btn-primary" onclick="saveProfile()">
+              <i class="bi bi-check-lg me-1"></i>Save Changes
+            </button>
+          </div>
+        </div>
+
+        <!-- Change Password -->
+        <div class="card mb-4">
+          <div class="card-header">Change Password</div>
+          <div class="card-body">
+            <div id="passwordAlert"></div>
+            <div class="mb-3">
+              <label class="form-label">Current Password</label>
+              <input type="password" id="currentPwd" class="form-control"
+                     placeholder="Enter current password">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">New Password</label>
+              <input type="password" id="newPwd" class="form-control"
+                     placeholder="Minimum 6 characters">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Confirm New Password</label>
+              <input type="password" id="confirmPwd" class="form-control"
+                     placeholder="Repeat new password">
+            </div>
+            <button class="btn btn-warning" onclick="changePassword()">
+              <i class="bi bi-lock me-1"></i>Update Password
+            </button>
+          </div>
+        </div>
+
+        <!-- Category Manager -->
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            My Custom Categories
+            <button class="btn btn-sm btn-outline-primary"
+                    data-bs-toggle="modal" data-bs-target="#catModal"
+                    onclick="openAddCat()">
+              <i class="bi bi-plus-lg me-1"></i>Add Category
+            </button>
+          </div>
+          <div class="card-body" id="catList">
+            <div class="text-center py-3">
+              <div class="spinner-border text-primary spinner-border-sm"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Category Modal -->
+<div class="modal fade" id="catModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="catModalTitle">Add Category</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="catAlert"></div>
+        <div class="mb-3">
+          <label class="form-label">Category Name *</label>
+          <input type="text" id="catName" class="form-control"
+                 placeholder="e.g. Side Income">
+        </div>
+        <div class="mb-3" id="catTypeWrap">
+          <label class="form-label">Type *</label>
+          <select id="catType" class="form-select">
+            <option value="income">Income</option>
+            <option value="expense">Expense</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" id="catSaveBtn" onclick="saveCat()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index:9999">
+  <div id="toast" class="toast align-items-center text-white border-0">
+    <div class="d-flex">
+      <div class="toast-body"></div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto"
+              data-bs-dismiss="toast"></button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/sidebar.js"></script>
+<script>
+let editCatId = null;
+
+document.addEventListener('DOMContentLoaded', async () => {
+    if (!requireAuth()) return;
+    renderSidebar('profile');
+    loadNotifBadge();
+    await loadProfile();
+    await loadCategories();
+    await loadNotifications();
+});
+
+async function loadProfile() {
+    const res = await API.get('/api/user/profile');
+    if (!res?.data) return;
+
+    const u = res.data;
+    document.getElementById('pName').textContent    = u.name;
+    document.getElementById('pEmail').textContent   = u.email;
+    document.getElementById('pRole').textContent    = u.role === 'admin' ? 'Administrator' : 'User';
+    document.getElementById('pJoined').textContent  =
+        'Member since ' + formatDate(u.created_at);
+    document.getElementById('avatarLarge').textContent = getUserInitials(u.name);
+
+    document.getElementById('eName').value  = u.name;
+    document.getElementById('eEmail').value = u.email;
+}
+
+async function saveProfile() {
+    const name  = document.getElementById('eName').value.trim();
+    const email = document.getElementById('eEmail').value.trim();
+
+    if (!name)  { showAlert('profileAlert','Name is required.','warning'); return; }
+    if (!email) { showAlert('profileAlert','Email is required.','warning'); return; }
+
+    const res = await API.put('/api/user/profile', { name, email });
+
+    if (res?.status === 'success') {
+        // Update stored user object
+        const stored  = getStoredUser();
+        stored.name   = name;
+        stored.email  = email;
+        localStorage.setItem('user', JSON.stringify(stored));
+
+        showAlert('profileAlert','Profile updated successfully!','success');
+        loadProfile();
+        renderSidebar('profile');
+    } else {
+        showAlert('profileAlert', res?.error || 'Update failed.');
+    }
+}
+
+async function changePassword() {
+    const current  = document.getElementById('currentPwd').value;
+    const newPass  = document.getElementById('newPwd').value;
+    const confirm  = document.getElementById('confirmPwd').value;
+
+    if (!current || !newPass) {
+        showAlert('passwordAlert','All fields are required.','warning'); return;
+    }
+    if (newPass.length < 6) {
+        showAlert('passwordAlert','New password must be at least 6 characters.','warning'); return;
+    }
+    if (newPass !== confirm) {
+        showAlert('passwordAlert','New passwords do not match.','warning'); return;
+    }
+
+    const res = await API.put('/api/user/password', {
+        current_password: current,
+        new_password:     newPass
+    });
+
+    if (res?.status === 'success') {
+        showAlert('passwordAlert','Password changed! Please login again.','success');
+        document.getElementById('currentPwd').value = '';
+        document.getElementById('newPwd').value     = '';
+        document.getElementById('confirmPwd').value = '';
+        setTimeout(() => { clearAuthData(); window.location.href = 'login.html'; }, 2000);
+    } else {
+        showAlert('passwordAlert', res?.error || 'Password change failed.');
+    }
+}
+
+async function loadCategories() {
+    const res = await API.get('/api/categories');
+    const el  = document.getElementById('catList');
+
+    if (!res?.data) { el.innerHTML = '<div class="text-muted small">Failed to load.</div>'; return; }
+
+    const user    = getStoredUser();
+    const custom  = res.data.filter(c => c.user_id === user.id);
+
+    if (!custom.length) {
+        el.innerHTML = `
+            <div class="empty-state">
+                <i class="bi bi-tags"></i>
+                <p>No custom categories yet. Add one above!</p>
+            </div>`;
+        return;
+    }
+
+    el.innerHTML = `
+        <div class="table-responsive">
+          <table class="table table-sm mb-0">
+            <thead>
+              <tr><th>Name</th><th>Type</th><th class="text-end">Actions</th></tr>
+            </thead>
+            <tbody>
+              ${custom.map(c => `
+                <tr>
+                  <td>${c.name}</td>
+                  <td>
+                    <span class="type-badge ${c.type==='income'?'badge-income':'badge-expense'}">
+                      ${c.type}
+                    </span>
+                  </td>
+                  <td class="text-end">
+                    <button class="btn btn-sm btn-outline-primary border-0 p-1"
+                            onclick='openEditCat(${JSON.stringify(c)})'>
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger border-0 p-1"
+                            onclick="deleteCat(${c.id})">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`;
+}
+
+function openAddCat() {
+    editCatId = null;
+    document.getElementById('catModalTitle').textContent = 'Add Category';
+    document.getElementById('catAlert').innerHTML        = '';
+    document.getElementById('catName').value             = '';
+    document.getElementById('catType').value             = 'expense';
+    document.getElementById('catTypeWrap').style.display = 'block';
+}
+
+function openEditCat(c) {
+    editCatId = c.id;
+    document.getElementById('catModalTitle').textContent = 'Edit Category';
+    document.getElementById('catAlert').innerHTML        = '';
+    document.getElementById('catName').value             = c.name;
+    document.getElementById('catTypeWrap').style.display = 'none';
+    new bootstrap.Modal(document.getElementById('catModal')).show();
+}
+
+async function saveCat() {
+    const name = document.getElementById('catName').value.trim();
+    const type = document.getElementById('catType').value;
+
+    if (!name) { showAlert('catAlert','Category name is required.','warning'); return; }
+
+    document.getElementById('catSaveBtn').disabled = true;
+
+    const res = editCatId
+        ? await API.put(`/api/categories/${editCatId}`, { name })
+        : await API.post('/api/categories', { name, type });
+
+    document.getElementById('catSaveBtn').disabled = false;
+
+    if (res?.status === 'success') {
+        bootstrap.Modal.getInstance(document.getElementById('catModal')).hide();
+        showToast(editCatId ? 'Category updated!' : 'Category created!');
+        loadCategories();
+    } else {
+        showAlert('catAlert', res?.error || 'Save failed.');
+    }
+}
+
+async function deleteCat(id) {
+    if (!confirm('Delete this category?')) return;
+    const res = await API.delete(`/api/categories/${id}`);
+    if (res?.status === 'success') { showToast('Category deleted.', 'warning'); loadCategories(); }
+    else showToast(res?.error || 'Delete failed.', 'danger');
+}
+
+async function loadNotifications() {
+    const res  = await API.get('/api/notifications');
+    const body = document.getElementById('notifListBody');
+
+    if (!res?.data?.length) {
+        body.innerHTML = `
+            <div class="text-center p-3 text-muted small">
+                No notifications yet
+            </div>`;
+        return;
+    }
+
+    body.innerHTML = res.data.slice(0, 8).map(n => `
+        <div class="notif-item ${!n.is_read ? 'unread' : ''}">
+          <div style="font-size:.8rem;font-weight:500">${n.message}</div>
+          <div class="text-muted" style="font-size:.7rem">${formatDate(n.created_at)}</div>
+        </div>`).join('');
+}
+
+async function markAllRead() {
+    await API.put('/api/notifications/read-all');
+    loadNotifBadge();
+    loadNotifications();
+    showToast('All notifications marked as read.');
+}
+</script>
+</body>
+</html>

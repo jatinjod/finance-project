@@ -1,0 +1,1452 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
+
+<title>Investment Planner — FinanceAI</title>
+
+<link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+>
+
+<link
+    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css"
+    rel="stylesheet"
+>
+
+<link
+    rel="stylesheet"
+    href="../css/style.css"
+>
+
+<style>
+
+.planner-hero {
+    background: linear-gradient(
+        135deg,
+        #4361ee,
+        #3a0ca3
+    );
+    color: white;
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 20px;
+}
+
+.profile-card {
+    cursor: pointer;
+    transition: .18s ease;
+    border: 2px solid #e2e8f0;
+}
+
+.profile-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(15,23,42,.08);
+}
+
+.profile-card.active {
+    border-color: #4361ee;
+    background: #f0f4ff;
+}
+
+.profile-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #eef2ff;
+    color: #4361ee;
+    font-size: 1.25rem;
+}
+
+.score-circle {
+    width: 125px;
+    height: 125px;
+    border-radius: 50%;
+    border: 10px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: auto;
+}
+
+.score-number {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.asset-row {
+    padding: 12px 0;
+    border-bottom: 1px solid #eef2f7;
+}
+
+.asset-row:last-child {
+    border-bottom: none;
+}
+
+.action-card {
+    border-left: 4px solid #4361ee;
+    background: #f8fafc;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+}
+
+.action-high {
+    border-left-color: #dc2626;
+}
+
+.action-medium {
+    border-left-color: #ca8a04;
+}
+
+.action-info {
+    border-left-color: #4361ee;
+}
+
+.stat-box {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 16px;
+    height: 100%;
+}
+
+.stat-label {
+    font-size: .78rem;
+    color: #64748b;
+    margin-bottom: 4px;
+}
+
+.stat-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.disclaimer {
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    color: #9a3412;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: .82rem;
+}
+
+.loading-overlay {
+    display: none;
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+<div id="sidebar" class="sidebar"></div>
+
+
+<div class="main-content">
+
+    <div class="topbar">
+
+        <span class="topbar-title">
+            Investment Planner
+        </span>
+
+        <div class="topbar-right">
+
+            <button
+                class="btn btn-primary btn-sm"
+                onclick="calculatePlanner()"
+            >
+                <i class="bi bi-stars me-1"></i>
+                Generate Plan
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <div class="page-body">
+
+
+        <!-- HERO -->
+
+        <div class="planner-hero">
+
+            <div class="row align-items-center">
+
+                <div class="col-md-8">
+
+                    <div class="small opacity-75 mb-1">
+                        FINANCEAI SMART PLANNER
+                    </div>
+
+                    <h3 class="mb-2">
+                        Build a smarter investment roadmap
+                    </h3>
+
+                    <p class="mb-0 opacity-75">
+                        Uses your FinanceAI income, expenses and
+                        savings data to build an educational,
+                        goal-based investing scenario.
+                    </p>
+
+                </div>
+
+                <div class="col-md-4 text-md-end mt-3 mt-md-0">
+
+                    <i
+                        class="bi bi-graph-up-arrow"
+                        style="font-size:4rem;opacity:.25"
+                    ></i>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- INPUT CARD -->
+
+        <div class="card mb-4">
+
+            <div class="card-header">
+
+                <i class="bi bi-sliders me-2"></i>
+                Your planning inputs
+
+            </div>
+
+
+            <div class="card-body">
+
+
+                <label class="form-label fw-semibold">
+                    Risk profile
+                </label>
+
+
+                <div class="row g-3 mb-4">
+
+
+                    <div class="col-md-3">
+
+                        <div
+                            class="profile-card rounded p-3 active"
+                            data-profile="conservative"
+                            onclick="selectProfile('conservative')"
+                        >
+
+                            <div class="profile-icon mb-2">
+                                <i class="bi bi-shield-check"></i>
+                            </div>
+
+                            <div class="fw-semibold">
+                                Conservative
+                            </div>
+
+                            <small class="text-muted">
+                                Lower volatility
+                            </small>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="col-md-3">
+
+                        <div
+                            class="profile-card rounded p-3"
+                            data-profile="balanced"
+                            onclick="selectProfile('balanced')"
+                        >
+
+                            <div class="profile-icon mb-2">
+                                <i class="bi bi-scale"></i>
+                            </div>
+
+                            <div class="fw-semibold">
+                                Balanced
+                            </div>
+
+                            <small class="text-muted">
+                                Moderate risk
+                            </small>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="col-md-3">
+
+                        <div
+                            class="profile-card rounded p-3"
+                            data-profile="growth"
+                            onclick="selectProfile('growth')"
+                        >
+
+                            <div class="profile-icon mb-2">
+                                <i class="bi bi-graph-up"></i>
+                            </div>
+
+                            <div class="fw-semibold">
+                                Growth
+                            </div>
+
+                            <small class="text-muted">
+                                Higher volatility
+                            </small>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="col-md-3">
+
+                        <div
+                            class="profile-card rounded p-3"
+                            data-profile="aggressive"
+                            onclick="selectProfile('aggressive')"
+                        >
+
+                            <div class="profile-icon mb-2">
+                                <i class="bi bi-lightning-charge"></i>
+                            </div>
+
+                            <div class="fw-semibold">
+                                Aggressive
+                            </div>
+
+                            <small class="text-muted">
+                                Highest volatility
+                            </small>
+
+                        </div>
+
+                    </div>
+
+
+                </div>
+
+
+                <div class="row g-3">
+
+
+                    <div class="col-md-4">
+
+                        <label class="form-label">
+                            Investment horizon
+                        </label>
+
+                        <div class="input-group">
+
+                            <input
+                                type="number"
+                                id="horizonYears"
+                                class="form-control"
+                                min="1"
+                                max="30"
+                                value="5"
+                            >
+
+                            <span class="input-group-text">
+                                years
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="col-md-4">
+
+                        <label class="form-label">
+                            Goal amount
+                        </label>
+
+                        <div class="input-group">
+
+                            <span class="input-group-text">
+                                ₹
+                            </span>
+
+                            <input
+                                type="number"
+                                id="goalAmount"
+                                class="form-control"
+                                min="0"
+                                value="500000"
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="col-md-4">
+
+                        <label class="form-label">
+                            Monthly investment
+                        </label>
+
+                        <div class="input-group">
+
+                            <span class="input-group-text">
+                                ₹
+                            </span>
+
+                            <input
+                                type="number"
+                                id="monthlyInvestment"
+                                class="form-control"
+                                min="0"
+                                value="5000"
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="col-md-4">
+
+                        <label class="form-label">
+                            Current emergency fund
+                        </label>
+
+                        <div class="input-group">
+
+                            <span class="input-group-text">
+                                ₹
+                            </span>
+
+                            <input
+                                type="number"
+                                id="emergencyFund"
+                                class="form-control"
+                                min="0"
+                                value="0"
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                </div>
+
+
+                <div class="mt-4">
+
+                    <button
+                        class="btn btn-primary"
+                        id="generateBtn"
+                        onclick="calculatePlanner()"
+                    >
+
+                        <i class="bi bi-stars me-1"></i>
+
+                        <span id="generateText">
+                            Generate Investment Plan
+                        </span>
+
+                        <span
+                            id="generateSpinner"
+                            class="spinner-border spinner-border-sm ms-2 d-none"
+                        ></span>
+
+                    </button>
+
+                </div>
+
+
+                <div
+                    id="errorBox"
+                    class="mt-3"
+                ></div>
+
+
+            </div>
+
+        </div>
+
+
+        <!-- RESULTS -->
+
+        <div
+            id="results"
+            style="display:none"
+        >
+
+
+            <!-- FINANCIAL SNAPSHOT -->
+
+            <div class="row g-3 mb-4">
+
+                <div class="col-md-3">
+
+                    <div class="stat-box">
+
+                        <div class="stat-label">
+                            Avg. Monthly Income
+                        </div>
+
+                        <div
+                            class="stat-value"
+                            id="monthlyIncome"
+                        >
+                            ₹0
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-3">
+
+                    <div class="stat-box">
+
+                        <div class="stat-label">
+                            Avg. Monthly Expense
+                        </div>
+
+                        <div
+                            class="stat-value"
+                            id="monthlyExpense"
+                        >
+                            ₹0
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-3">
+
+                    <div class="stat-box">
+
+                        <div class="stat-label">
+                            Monthly Surplus
+                        </div>
+
+                        <div
+                            class="stat-value"
+                            id="monthlySurplus"
+                        >
+                            ₹0
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-3">
+
+                    <div class="stat-box">
+
+                        <div class="stat-label">
+                            Savings Goals
+                        </div>
+
+                        <div
+                            class="stat-value"
+                            id="goalCount"
+                        >
+                            0
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- SCORE + ALLOCATION -->
+
+            <div class="row g-4 mb-4">
+
+
+                <div class="col-lg-4">
+
+                    <div class="card h-100">
+
+                        <div class="card-header">
+                            Planner Readiness
+                        </div>
+
+                        <div class="card-body text-center">
+
+                            <div class="score-circle">
+
+                                <div
+                                    class="score-number"
+                                    id="readinessScore"
+                                >
+                                    0
+                                </div>
+
+                                <small class="text-muted">
+                                    / 100
+                                </small>
+
+                            </div>
+
+                            <h5
+                                class="mt-3 mb-1"
+                                id="readinessGrade"
+                            >
+                                —
+                            </h5>
+
+                            <div
+                                class="text-muted small"
+                                id="profileLabel"
+                            >
+                                —
+                            </div>
+
+                            <div class="mt-3">
+                                <small
+                                    class="text-muted"
+                                    id="emergencyStatus"
+                                >
+                                    —
+                                </small>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-lg-8">
+
+                    <div class="card h-100">
+
+                        <div class="card-header">
+                            <i class="bi bi-pie-chart me-2"></i>
+                            Educational allocation
+                        </div>
+
+                        <div class="card-body">
+
+                            <div class="row align-items-center">
+
+                                <div class="col-md-6">
+
+                                    <canvas
+                                        id="allocationChart"
+                                        height="240"
+                                    ></canvas>
+
+                                </div>
+
+
+                                <div
+                                    class="col-md-6"
+                                    id="allocationList"
+                                ></div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+            </div>
+
+
+            <!-- MONTHLY ALLOCATION -->
+
+            <div class="card mb-4">
+
+                <div class="card-header">
+
+                    <i class="bi bi-currency-rupee me-2"></i>
+                    Monthly allocation
+
+                </div>
+
+                <div
+                    class="card-body"
+                    id="monthlyAllocation"
+                ></div>
+
+            </div>
+
+
+            <!-- GOAL SCENARIOS -->
+
+            <div class="card mb-4">
+
+                <div class="card-header">
+
+                    <i class="bi bi-bullseye me-2"></i>
+                    Goal scenarios
+
+                </div>
+
+                <div class="card-body">
+
+                    <div
+                        class="table-responsive"
+                    >
+
+                        <table
+                            class="table align-middle mb-0"
+                        >
+
+                            <thead>
+
+                                <tr>
+
+                                    <th>
+                                        Scenario
+                                    </th>
+
+                                    <th>
+                                        Required Monthly
+                                    </th>
+
+                                    <th>
+                                        Projected Value
+                                    </th>
+
+                                    <th>
+                                        Goal Gap
+                                    </th>
+
+                                </tr>
+
+                            </thead>
+
+
+                            <tbody
+                                id="scenarioBody"
+                            ></tbody>
+
+                        </table>
+
+                    </div>
+
+                    <div
+                        class="small text-muted mt-3"
+                    >
+                        Scenario returns are hypothetical calculations,
+                        not guaranteed returns.
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- ACTION PLAN -->
+
+            <div class="card mb-4">
+
+                <div class="card-header">
+
+                    <i class="bi bi-list-check me-2"></i>
+                    Your action plan
+
+                </div>
+
+                <div
+                    class="card-body"
+                    id="actionPlan"
+                ></div>
+
+            </div>
+
+
+            <!-- DISCLAIMER -->
+
+            <div
+                class="disclaimer mb-4"
+                id="disclaimer"
+            ></div>
+
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script src="../js/api.js"></script>
+
+<script src="../js/auth.js"></script>
+
+<script src="../js/sidebar.js"></script>
+
+
+<script>
+
+let selectedProfile = "conservative";
+
+let allocationChart = null;
+
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        if (!requireAuth()) {
+            return;
+        }
+
+        renderSidebar(
+            "planner"
+        );
+
+        if (
+            typeof loadNotifBadge ===
+            "function"
+        ) {
+            loadNotifBadge();
+        }
+
+    }
+);
+
+
+function selectProfile(profile) {
+
+    selectedProfile = profile;
+
+    document
+        .querySelectorAll(
+            ".profile-card"
+        )
+        .forEach(
+            card => {
+
+                card.classList.toggle(
+                    "active",
+                    card.dataset.profile === profile
+                );
+
+            }
+        );
+}
+
+
+function money(value) {
+
+    const n = Number(
+        value || 0
+    );
+
+    return "₹" + n.toLocaleString(
+        "en-IN",
+        {
+            maximumFractionDigits: 2
+        }
+    );
+}
+
+
+function escapeHtml(value) {
+
+    return String(
+        value ?? ""
+    )
+    .replace(
+        /&/g,
+        "&amp;"
+    )
+    .replace(
+        /</g,
+        "&lt;"
+    )
+    .replace(
+        />/g,
+        "&gt;"
+    )
+    .replace(
+        /"/g,
+        "&quot;"
+    )
+    .replace(
+        /'/g,
+        "&#039;"
+    );
+
+}
+
+
+function showError(message) {
+
+    document.getElementById(
+        "errorBox"
+    ).innerHTML = `
+        <div class="alert alert-danger">
+            ${escapeHtml(message)}
+        </div>
+    `;
+
+}
+
+
+async function calculatePlanner() {
+
+    const button =
+        document.getElementById(
+            "generateBtn"
+        );
+
+    const text =
+        document.getElementById(
+            "generateText"
+        );
+
+    const spinner =
+        document.getElementById(
+            "generateSpinner"
+        );
+
+
+    document.getElementById(
+        "errorBox"
+    ).innerHTML = "";
+
+
+    button.disabled = true;
+
+    text.textContent = "Building plan...";
+
+    spinner.classList.remove(
+        "d-none"
+    );
+
+
+    const payload = {
+
+        risk_profile:
+            selectedProfile,
+
+        horizon_years:
+            Number(
+                document.getElementById(
+                    "horizonYears"
+                ).value
+            ),
+
+        goal_amount:
+            Number(
+                document.getElementById(
+                    "goalAmount"
+                ).value
+            ),
+
+        monthly_investment:
+            Number(
+                document.getElementById(
+                    "monthlyInvestment"
+                ).value
+            ),
+
+        emergency_fund:
+            Number(
+                document.getElementById(
+                    "emergencyFund"
+                ).value
+            )
+
+    };
+
+
+    try {
+
+        const response =
+            await API.post(
+                "/api/investment/planner",
+                payload
+            );
+
+
+        if (
+            !response ||
+            response.status !== "success" ||
+            !response.data
+        ) {
+
+            showError(
+                response?.error ||
+                "Unable to generate the investment plan."
+            );
+
+            return;
+        }
+
+
+        renderResults(
+            response.data
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "Investment planner error:",
+            error
+        );
+
+        showError(
+            "Unable to connect to the backend."
+        );
+
+
+    } finally {
+
+        button.disabled = false;
+
+        text.textContent =
+            "Generate Investment Plan";
+
+        spinner.classList.add(
+            "d-none"
+        );
+
+    }
+
+}
+
+
+function renderResults(data) {
+
+    const snapshot =
+        data.financial_snapshot;
+
+
+    document.getElementById(
+        "monthlyIncome"
+    ).textContent =
+        money(
+            snapshot.average_monthly_income
+        );
+
+
+    document.getElementById(
+        "monthlyExpense"
+    ).textContent =
+        money(
+            snapshot.average_monthly_expense
+        );
+
+
+    document.getElementById(
+        "monthlySurplus"
+    ).textContent =
+        money(
+            snapshot.average_monthly_surplus
+        );
+
+
+    document.getElementById(
+        "goalCount"
+    ).textContent =
+        snapshot.savings_goal_count;
+
+
+    // Readiness
+    document.getElementById(
+        "readinessScore"
+    ).textContent =
+        data.readiness.score;
+
+
+    document.getElementById(
+        "readinessGrade"
+    ).textContent =
+        data.readiness.grade;
+
+
+    document.getElementById(
+        "profileLabel"
+    ).textContent =
+        data.risk_profile.charAt(0).toUpperCase() +
+        data.risk_profile.slice(1) +
+        " profile";
+
+
+    const emergency =
+        data.emergency_fund;
+
+
+    document.getElementById(
+        "emergencyStatus"
+    ).textContent =
+        emergency.months_covered > 0
+            ? `${emergency.months_covered} months of expenses covered`
+            : "Emergency fund not entered";
+
+
+    renderAllocation(
+        data.educational_allocation
+    );
+
+
+    renderMonthlyAllocation(
+        data.monthly_allocation,
+        data.monthly_investment
+    );
+
+
+    renderScenarios(
+        data.goal_projection
+    );
+
+
+    renderActionPlan(
+        data.action_plan
+    );
+
+
+    document.getElementById(
+        "disclaimer"
+    ).textContent =
+        data.disclaimer ||
+        "Educational planning only.";
+
+
+    document.getElementById(
+        "results"
+    ).style.display = "block";
+
+
+    window.scrollTo({
+        top:
+            document.getElementById(
+                "results"
+            ).offsetTop - 20,
+        behavior: "smooth"
+    });
+
+}
+
+
+function renderAllocation(
+    allocation
+) {
+
+    const labels = [
+        "Equity",
+        "Debt",
+        "Gold",
+        "Cash"
+    ];
+
+
+    const keys = [
+        "equity",
+        "debt",
+        "gold",
+        "cash"
+    ];
+
+
+    const values =
+        keys.map(
+            key =>
+                Number(
+                    allocation[key] || 0
+                )
+        );
+
+
+    const ctx =
+        document
+            .getElementById(
+                "allocationChart"
+            )
+            .getContext(
+                "2d"
+            );
+
+
+    if (
+        allocationChart
+    ) {
+        allocationChart.destroy();
+    }
+
+
+    allocationChart =
+        new Chart(
+            ctx,
+            {
+                type: "doughnut",
+
+                data: {
+                    labels: labels,
+
+                    datasets: [
+                        {
+                            data: values
+                        }
+                    ]
+                },
+
+                options: {
+                    responsive: true,
+
+                    plugins: {
+                        legend: {
+                            position: "bottom"
+                        }
+                    }
+                }
+            }
+        );
+
+
+    const list =
+        document.getElementById(
+            "allocationList"
+        );
+
+
+    list.innerHTML =
+        keys.map(
+            (key, index) => `
+                <div class="asset-row d-flex justify-content-between">
+                    <span>
+                        ${labels[index]}
+                    </span>
+
+                    <strong>
+                        ${values[index]}%
+                    </strong>
+                </div>
+            `
+        ).join("");
+
+}
+
+
+function renderMonthlyAllocation(
+    allocation,
+    monthlyInvestment
+) {
+
+    const labels = {
+        equity: "Equity",
+        debt: "Debt",
+        gold: "Gold",
+        cash: "Cash"
+    };
+
+
+    const icons = {
+        equity: "bi-graph-up",
+        debt: "bi-shield-check",
+        gold: "bi-gem",
+        cash: "bi-cash-stack"
+    };
+
+
+    const container =
+        document.getElementById(
+            "monthlyAllocation"
+        );
+
+
+    container.innerHTML =
+        Object.keys(
+            labels
+        ).map(
+            key => `
+
+                <div class="asset-row d-flex align-items-center justify-content-between">
+
+                    <div class="d-flex align-items-center gap-2">
+
+                        <i
+                            class="bi ${icons[key]} text-primary"
+                        ></i>
+
+                        <span>
+                            ${labels[key]}
+                        </span>
+
+                    </div>
+
+                    <strong>
+                        ${money(
+                            allocation[key]
+                        )}
+                    </strong>
+
+                </div>
+
+            `
+        ).join("");
+
+
+    if (
+        Number(monthlyInvestment) <= 0
+    ) {
+
+        container.insertAdjacentHTML(
+            "beforeend",
+            `
+                <div class="alert alert-info mt-3 mb-0">
+                    Enter a monthly investment amount
+                    to see the monthly allocation.
+                </div>
+            `
+        );
+
+    }
+
+}
+
+
+function renderScenarios(
+    projection
+) {
+
+    const tbody =
+        document.getElementById(
+            "scenarioBody"
+        );
+
+
+    const scenarios =
+        projection.scenarios || [];
+
+
+    tbody.innerHTML =
+        scenarios.map(
+            scenario => `
+
+                <tr>
+
+                    <td>
+                        ${scenario.assumed_annual_rate}% scenario
+                    </td>
+
+                    <td>
+                        ${money(
+                            scenario.required_monthly_investment
+                        )}
+                    </td>
+
+                    <td>
+                        ${money(
+                            scenario.projected_value
+                        )}
+                    </td>
+
+                    <td>
+                        ${money(
+                            scenario.goal_gap
+                        )}
+                    </td>
+
+                </tr>
+
+            `
+        ).join("");
+
+}
+
+
+function renderActionPlan(
+    actions
+) {
+
+    const container =
+        document.getElementById(
+            "actionPlan"
+        );
+
+
+    if (
+        !actions ||
+        !actions.length
+    ) {
+
+        container.innerHTML = `
+            <div class="text-muted">
+                No action items available.
+            </div>
+        `;
+
+        return;
+    }
+
+
+    container.innerHTML =
+        actions.map(
+            action => {
+
+                const priority =
+                    action.priority ||
+                    "info";
+
+
+                return `
+
+                    <div class="action-card action-${priority}">
+
+                        <div class="fw-semibold mb-1">
+                            ${escapeHtml(
+                                action.title
+                            )}
+                        </div>
+
+                        <div class="text-muted small">
+                            ${escapeHtml(
+                                action.message
+                            )}
+                        </div>
+
+                    </div>
+
+                `;
+
+            }
+        ).join("");
+
+}
+
+</script>
+
+
+</body>
+</html>

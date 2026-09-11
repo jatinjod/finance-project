@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transactions — FinanceAI</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<div id="sidebar" class="sidebar"></div>
+
+<div class="main-content">
+  <div class="topbar">
+    <span class="topbar-title">Transaction History</span>
+    <div class="topbar-right">
+      <button class="notif-btn">
+        <i class="bi bi-bell"></i>
+        <span id="notifBadge" class="notif-badge" style="display:none">0</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="page-body">
+    <!-- Search & Filter Card -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Search</label>
+            <div class="input-group">
+              <span class="input-group-text bg-white border-end-0">
+                <i class="bi bi-search text-muted"></i>
+              </span>
+              <input type="text" id="fSearch" class="form-control border-start-0"
+                     placeholder="Search by note...">
+            </div>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Type</label>
+            <select id="fType" class="form-select">
+              <option value="all">All</option>
+              <option value="income">Income</option>
+              <option value="expense">Expense</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Month</label>
+            <select id="fMonth" class="form-select">
+              <option value="">All</option>
+              <option value="1">January</option><option value="2">February</option>
+              <option value="3">March</option><option value="4">April</option>
+              <option value="5">May</option><option value="6">June</option>
+              <option value="7">July</option><option value="8">August</option>
+              <option value="9">September</option><option value="10">October</option>
+              <option value="11">November</option><option value="12">December</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Year</label>
+            <select id="fYear" class="form-select">
+              <option value="">All</option>
+              <option value="2024">2024</option>
+              <option value="2025">2025</option>
+              <option value="2026">2026</option>
+            </select>
+          </div>
+          <div class="col-md-2 d-flex align-items-end gap-2">
+            <button class="btn btn-primary flex-fill" onclick="loadTransactions()">
+              <i class="bi bi-search me-1"></i>Search
+            </button>
+            <button class="btn btn-outline-secondary" onclick="clearFilters()">
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary Strip -->
+    <div class="row g-3 mb-3">
+      <div class="col-md-3">
+        <div class="summary-card">
+          <div class="summary-icon neutral"><i class="bi bi-list-check"></i></div>
+          <div>
+            <div class="summary-label">Total Records</div>
+            <div class="summary-value" id="totalCount">0</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="summary-card">
+          <div class="summary-icon income"><i class="bi bi-plus-circle"></i></div>
+          <div>
+            <div class="summary-label">Total Income</div>
+            <div class="summary-value" id="totalIncome">₹0</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="summary-card">
+          <div class="summary-icon expense"><i class="bi bi-dash-circle"></i></div>
+          <div>
+            <div class="summary-label">Total Expense</div>
+            <div class="summary-value" id="totalExpense">₹0</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="summary-card">
+          <div class="summary-icon balance"><i class="bi bi-arrow-left-right"></i></div>
+          <div>
+            <div class="summary-label">Net Balance</div>
+            <div class="summary-value" id="netBalance">₹0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card">
+      <div class="card-header">All Transactions</div>
+      <div id="tableWrap">
+        <div class="text-center py-4">
+          <div class="spinner-border text-primary"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index:9999">
+  <div id="toast" class="toast align-items-center text-white border-0">
+    <div class="d-flex">
+      <div class="toast-body"></div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto"
+              data-bs-dismiss="toast"></button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/sidebar.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    if (!requireAuth()) return;
+    renderSidebar('transactions');
+    loadNotifBadge();
+
+    const now = new Date();
+    document.getElementById('fMonth').value = now.getMonth() + 1;
+    document.getElementById('fYear').value  = now.getFullYear();
+
+    await loadTransactions();
+
+    // Search on Enter
+    document.getElementById('fSearch').addEventListener('keyup', e => {
+        if (e.key === 'Enter') loadTransactions();
+    });
+});
+
+async function loadTransactions() {
+    const search = document.getElementById('fSearch').value.trim();
+    const type   = document.getElementById('fType').value;
+    const month  = document.getElementById('fMonth').value;
+    const year   = document.getElementById('fYear').value;
+
+    let url = `/api/transactions?per_page=200&type=${type}`;
+    if (search) url += `&q=${encodeURIComponent(search)}`;
+    if (month && year) url += `&month=${month}&year=${year}`;
+
+    document.getElementById('tableWrap').innerHTML =
+        `<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>`;
+
+    const res = await API.get(url);
+    if (!res || res.error) {
+        document.getElementById('tableWrap').innerHTML =
+            `<div class="p-4 text-danger text-center">${res?.error || 'Failed to load'}</div>`;
+        return;
+    }
+
+    const records = res.data || [];
+
+    // Summary calculations
+    const incomeTotal  = records.filter(r => r.transaction_type === 'income')
+                                .reduce((s, r) => s + Number(r.amount), 0);
+    const expenseTotal = records.filter(r => r.transaction_type === 'expense')
+                                .reduce((s, r) => s + Number(r.amount), 0);
+    const net = incomeTotal - expenseTotal;
+
+    document.getElementById('totalCount').textContent   = records.length;
+    document.getElementById('totalIncome').textContent  = formatCurrency(incomeTotal);
+    document.getElementById('totalExpense').textContent = formatCurrency(expenseTotal);
+    const netEl = document.getElementById('netBalance');
+    netEl.textContent  = formatCurrency(Math.abs(net));
+    netEl.style.color  = net >= 0 ? '#16a34a' : '#dc2626';
+
+    if (!records.length) {
+        document.getElementById('tableWrap').innerHTML = `
+            <div class="empty-state"><i class="bi bi-search"></i>
+            <p>No transactions found matching your search.</p></div>`;
+        return;
+    }
+
+    document.getElementById('tableWrap').innerHTML = `
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Date</th><th>Type</th><th>Category</th>
+                <th>Note</th><th>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${records.map(r => {
+                const isInc = r.transaction_type === 'income';
+                return `
+                  <tr>
+                    <td>${formatDate(r.date)}</td>
+                    <td>
+                      <span class="type-badge ${isInc?'badge-income':'badge-expense'}">
+                        <i class="bi bi-arrow-${isInc?'down':'up'}-circle me-1"></i>
+                        ${isInc?'Income':'Expense'}
+                      </span>
+                    </td>
+                    <td>${r.category_name || '—'}</td>
+                    <td class="text-muted">${r.note || '—'}</td>
+                    <td class="fw-600 ${isInc?'text-success':'text-danger'}">
+                      ${isInc?'+':'−'}${formatCurrency(r.amount)}
+                    </td>
+                  </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>`;
+}
+
+function clearFilters() {
+    document.getElementById('fSearch').value = '';
+    document.getElementById('fType').value   = 'all';
+    document.getElementById('fMonth').value  = '';
+    document.getElementById('fYear').value   = '';
+    loadTransactions();
+}
+</script>
+</body>
+</html>

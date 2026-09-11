@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reports & Analytics — FinanceAI</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<style>
+  .stat-box {
+    background:#f8fafc; border-radius:10px; padding:14px 16px;
+    border-left:3px solid var(--primary);
+  }
+  .stat-box .label { font-size:.72rem; color:#64748b; }
+  .stat-box .value { font-size:1.1rem; font-weight:700; color:#1e293b; }
+  .change-up   { color:#16a34a; font-size:.78rem; }
+  .change-down { color:#dc2626; font-size:.78rem; }
+  .change-same { color:#64748b; font-size:.78rem; }
+  .tab-pill { cursor:pointer; padding:7px 18px; border-radius:20px;
+              font-size:.82rem; font-weight:500; border:1px solid #e2e8f0;
+              background:#fff; color:#64748b; transition:.15s; }
+  .tab-pill.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+  .section-title {
+    font-size:.82rem; font-weight:600; color:#64748b;
+    text-transform:uppercase; letter-spacing:.06em; margin-bottom:12px;
+  }
+</style>
+</head>
+<body>
+
+<div id="sidebar" class="sidebar"></div>
+
+<div class="main-content">
+  <div class="topbar">
+    <span class="topbar-title">Reports & Analytics</span>
+    <div class="topbar-right">
+      <button class="notif-btn">
+        <i class="bi bi-bell"></i>
+        <span id="notifBadge" class="notif-badge" style="display:none">0</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="page-body">
+
+    <!-- Period Selector + Export -->
+    <div class="card mb-4">
+      <div class="card-body py-2">
+        <div class="row g-2 align-items-center">
+          <div class="col-auto">
+            <label class="form-label mb-0 fw-600 small">Period:</label>
+          </div>
+          <div class="col-auto">
+            <select id="selMonth" class="form-select form-select-sm" style="width:130px">
+              <option value="1">January</option><option value="2">February</option>
+              <option value="3">March</option><option value="4">April</option>
+              <option value="5">May</option><option value="6">June</option>
+              <option value="7">July</option><option value="8">August</option>
+              <option value="9">September</option><option value="10">October</option>
+              <option value="11">November</option><option value="12">December</option>
+            </select>
+          </div>
+          <div class="col-auto">
+            <select id="selYear" class="form-select form-select-sm" style="width:90px">
+              <option value="2024">2024</option>
+              <option value="2025">2025</option>
+              <option value="2026">2026</option>
+            </select>
+          </div>
+          <div class="col-auto">
+            <button class="btn btn-sm btn-primary" onclick="loadAllAnalytics()">
+              <i class="bi bi-arrow-clockwise me-1"></i>Generate
+            </button>
+          </div>
+          <div class="col-auto ms-auto d-flex gap-2">
+            <a id="exportCsvBtn" href="#" class="btn btn-sm btn-outline-success"
+               target="_blank">
+              <i class="bi bi-filetype-csv me-1"></i>CSV
+            </a>
+            <a id="exportPdfBtn" href="#" class="btn btn-sm btn-outline-danger"
+               target="_blank">
+              <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div id="loadingDiv" class="text-center py-5">
+      <div class="spinner-border text-primary mb-2"></div>
+      <p class="text-muted small">Running analysis...</p>
+    </div>
+
+    <!-- Main Content -->
+    <div id="analyticsContent" style="display:none">
+
+      <!-- KPI Summary Cards -->
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+          <div class="summary-card">
+            <div class="summary-icon income"><i class="bi bi-arrow-down-circle"></i></div>
+            <div>
+              <div class="summary-label">Income</div>
+              <div class="summary-value" id="kpiIncome">₹0</div>
+              <div id="kpiIncomeChange" class="change-same">—</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="summary-card">
+            <div class="summary-icon expense"><i class="bi bi-arrow-up-circle"></i></div>
+            <div>
+              <div class="summary-label">Expenses</div>
+              <div class="summary-value" id="kpiExpenses">₹0</div>
+              <div id="kpiExpenseChange" class="change-same">—</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="summary-card">
+            <div class="summary-icon balance"><i class="bi bi-wallet2"></i></div>
+            <div>
+              <div class="summary-label">Balance</div>
+              <div class="summary-value" id="kpiBalance">₹0</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="summary-card">
+            <div class="summary-icon budget"><i class="bi bi-percent"></i></div>
+            <div>
+              <div class="summary-label">Savings Rate</div>
+              <div class="summary-value" id="kpiSavings">0%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Pills -->
+      <div class="d-flex gap-2 mb-4 flex-wrap">
+        <span class="tab-pill active" onclick="showTab('overview')">Overview</span>
+        <span class="tab-pill" onclick="showTab('categories')">Categories</span>
+        <span class="tab-pill" onclick="showTab('trends')">Trends</span>
+        <span class="tab-pill" onclick="showTab('comparison')">Comparison</span>
+        <span class="tab-pill" onclick="showTab('behavior')">Behavior</span>
+        <span class="tab-pill" onclick="showTab('savings')">Savings</span>
+      </div>
+
+      <!-- ═══ TAB: OVERVIEW ═══ -->
+      <div id="tab-overview">
+        <div class="row g-3 mb-4">
+          <div class="col-lg-7">
+            <div class="card">
+              <div class="card-header">Income vs Expenses — 6 Months</div>
+              <div class="card-body">
+                <div class="chart-container">
+                  <canvas id="barChart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-5">
+            <div class="card">
+              <div class="card-header">Spending Distribution</div>
+              <div class="card-body d-flex align-items-center justify-content-center">
+                <div class="chart-container w-100">
+                  <canvas id="pieChart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Spending Velocity + Trend -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <div class="card h-100">
+              <div class="card-header">Spending Velocity This Month</div>
+              <div class="card-body" id="velocityBody">—</div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card h-100">
+              <div class="card-header">Overall Spending Trend</div>
+              <div class="card-body" id="trendBody">—</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top Expenses -->
+        <div class="card">
+          <div class="card-header">Top Expenses This Month</div>
+          <div id="topExpenses">
+            <div class="text-center py-3 text-muted small">No data</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ TAB: CATEGORIES ═══ -->
+      <div id="tab-categories" style="display:none">
+        <div class="row g-3 mb-4">
+          <div class="col-lg-5">
+            <div class="card">
+              <div class="card-header">Category Breakdown</div>
+              <div class="card-body">
+                <div class="chart-container">
+                  <canvas id="catDoughnutChart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-7">
+            <div class="card">
+              <div class="card-header">Category Details</div>
+              <div id="catDetailTable">
+                <div class="text-center py-3">
+                  <div class="spinner-border spinner-border-sm text-primary"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">Category Trends — Last 6 Months</div>
+          <div class="card-body">
+            <div class="chart-container">
+              <canvas id="catTrendChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ TAB: TRENDS ═══ -->
+      <div id="tab-trends" style="display:none">
+        <div class="row g-3 mb-4">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header">Income vs Expense Trend Line</div>
+              <div class="card-body">
+                <div class="chart-container" style="height:300px">
+                  <canvas id="trendLineChart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <div class="card">
+              <div class="card-header">Monthly Savings Rate</div>
+              <div class="card-body">
+                <div class="chart-container">
+                  <canvas id="savingsRateChart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card">
+              <div class="card-header">Income/Expense Ratio</div>
+              <div class="card-body">
+                <div class="chart-container">
+                  <canvas id="ratioChart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">Monthly Data Table</div>
+          <div id="trendTable">
+            <div class="text-center py-3">
+              <div class="spinner-border spinner-border-sm text-primary"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ TAB: COMPARISON ═══ -->
+      <div id="tab-comparison" style="display:none">
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
+            <div class="card text-center p-3">
+              <div class="text-muted small mb-2">Income Change vs Last Month</div>
+              <div id="cmpIncome" class="fs-3 fw-700">—</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card text-center p-3">
+              <div class="text-muted small mb-2">Expense Change vs Last Month</div>
+              <div id="cmpExpense" class="fs-3 fw-700">—</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card text-center p-3">
+              <div class="text-muted small mb-2">Balance Change vs Last Month</div>
+              <div id="cmpBalance" class="fs-3 fw-700">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="card-header">Category-level Changes vs Previous Month</div>
+          <div id="cmpCatTable">
+            <div class="text-center py-3">
+              <div class="spinner-border spinner-border-sm text-primary"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">Side-by-Side Month Comparison</div>
+          <div class="card-body">
+            <div class="chart-container">
+              <canvas id="comparisonChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ TAB: BEHAVIOR ═══ -->
+      <div id="tab-behavior" style="display:none">
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <div class="card">
+              <div class="card-header">Spending by Day of Week</div>
+              <div class="card-body">
+                <div class="chart-container">
+                  <canvas id="weekdayChart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card">
+              <div class="card-header">Budget Adherence</div>
+              <div class="card-body" id="adherenceBody">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">High-Value Transactions (Top 10%)</div>
+          <div id="percentileBody">
+            <div class="text-center py-3">
+              <div class="spinner-border spinner-border-sm text-primary"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ TAB: SAVINGS ═══ -->
+      <div id="tab-savings" style="display:none">
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
+            <div class="card text-center p-3">
+              <div class="text-muted small">Total Goals</div>
+              <div id="savTotalGoals" class="fs-3 fw-700">0</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card text-center p-3">
+              <div class="text-muted small">Total Saved</div>
+              <div id="savTotalSaved" class="fs-3 fw-700 text-success">₹0</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card text-center p-3">
+              <div class="text-muted small">Overall Progress</div>
+              <div id="savOverallPct" class="fs-3 fw-700 text-primary">0%</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="card-header">Savings Goals Detail</div>
+          <div id="savingsDetail">
+            <div class="text-center py-3">
+              <div class="spinner-border spinner-border-sm text-primary"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end analyticsContent -->
+
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index:9999">
+  <div id="toast" class="toast align-items-center text-white border-0">
+    <div class="d-flex">
+      <div class="toast-body"></div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto"
+              data-bs-dismiss="toast"></button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/sidebar.js"></script>
+<script>
+// Chart instances
+const CHARTS = {};
+const COLORS = [
+    '#4361ee','#e63946','#2d6a4f','#e9c46a','#f4a261',
+    '#457b9d','#a8dadc','#1d3557','#e76f51','#264653'
+];
+let analyticsData = null;
+let activeTab     = 'overview';
+
+document.addEventListener('DOMContentLoaded', async () => {
+    if (!requireAuth()) return;
+    renderSidebar('reports');
+    loadNotifBadge();
+
+    const now = new Date();
+    document.getElementById('selMonth').value = now.getMonth() + 1;
+    document.getElementById('selYear').value  = now.getFullYear();
+
+    await loadAllAnalytics();
+});
+
+function updateExportLinks() {
+    const m   = document.getElementById('selMonth').value;
+    const y   = document.getElementById('selYear').value;
+    const tok = getToken();
+    const base = `http://localhost:5000`;
+
+    document.getElementById('exportCsvBtn').href =
+        `${base}/api/analytics/export/csv?month=${m}&year=${y}`;
+    document.getElementById('exportPdfBtn').href =
+        `${base}/api/analytics/export/pdf?month=${m}&year=${y}`;
+
+    // Attach token via headers is not possible for simple <a> links
+    // So we open PDF in new tab via JavaScript fetch
+    document.getElementById('exportPdfBtn').onclick = async (e) => {
+        e.preventDefault();
+        const res = await fetch(
+            `${base}/api/analytics/export/pdf?month=${m}&year=${y}`,
+            { headers: { 'Authorization': `Bearer ${tok}` } }
+        );
+        const html = await res.text();
+        const w    = window.open('', '_blank');
+        w.document.write(html);
+        w.document.close();
+    };
+
+    document.getElementById('exportCsvBtn').onclick = async (e) => {
+        e.preventDefault();
+        const res = await fetch(
+            `${base}/api/analytics/export/csv?month=${m}&year=${y}`,
+            { headers: { 'Authorization': `Bearer ${tok}` } }
+        );
+        const csv  = await res.text();
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = `transactions_${y}_${String(m).padStart(2,'0')}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+}
+
+async function loadAllAnalytics() {
+    const m = document.getElementById('selMonth').value;
+    const y = document.getElementById('selYear').value;
+
+    document.getElementById('loadingDiv').style.display      = 'block';
+    document.getElementById('analyticsContent').style.display = 'none';
+
+    updateExportLinks();
+
+    const res = await API.get(
+        `/api/analytics/full?month=${m}&year=${y}&months=6`
+    );
+
+    document.getElementById('loadingDiv').style.display = 'none';
+
+    if (!res || res.error) {
+        showToast(res?.error || 'Failed to load analytics.', 'danger');
+        return;
+    }
+
+    analyticsData = res.data;
+    document.getElementById('analyticsContent').style.display = 'block';
+
+    renderKPIs();
+    renderActiveTab();
+}
+
+function renderKPIs() {
+    const s = analyticsData.monthly_summary;
+    const c = analyticsData.comparison?.changes || {};
+
+    document.getElementById('kpiIncome').textContent   = formatCurrency(s.total_income);
+    document.getElementById('kpiExpenses').textContent = formatCurrency(s.total_expenses);
+    document.getElementById('kpiSavings').textContent  = s.savings_rate + '%';
+
+    const bal = document.getElementById('kpiBalance');
+    bal.textContent  = formatCurrency(s.balance);
+    bal.style.color  = s.balance >= 0 ? '#16a34a' : '#dc2626';
+
+    function changeEl(id, data) {
+        const el = document.getElementById(id);
+        if (!el || !data) { el.textContent = '—'; return; }
+        const pct = data.percent || 0;
+        const dir = pct > 0 ? '▲' : pct < 0 ? '▼' : '→';
+        el.textContent = `${dir} ${Math.abs(pct).toFixed(1)}% vs last month`;
+        el.className   = pct > 0 ? 'change-up' : pct < 0 ? 'change-down' : 'change-same';
+    }
+
+    changeEl('kpiIncomeChange',  c.income);
+    changeEl('kpiExpenseChange', c.expenses);
+}
+
+function showTab(tab) {
+    document.querySelectorAll('.tab-pill').forEach(el => el.classList.remove('active'));
+    event.target.classList.add('active');
+
+    ['overview','categories','trends','comparison','behavior','savings'].forEach(t => {
+        document.getElementById(`tab-${t}`).style.display = t === tab ? 'block' : 'none';
+    });
+
+    activeTab = tab;
+    renderActiveTab();
+}
+
+function renderActiveTab() {
+    switch (activeTab) {
+        case 'overview':    renderOverview();    break;
+        case 'categories':  renderCategories();  break;
+        case 'trends':      renderTrends();      break;
+        case 'comparison':  renderComparison();  break;
+        case 'behavior':    renderBehavior();    break;
+        case 'savings':     renderSavings();     break;
+    }
+}
+
+function destroyChart(id) {
+    if (CHARTS[id]) { CHARTS[id].destroy(); delete CHARTS[id]; }
+}
+
+// ── OVERVIEW ─────────────────────────────────
+function renderOverview() {
+    const trend  = analyticsData.monthly_trend || [];
+    const cats   = analyticsData.category_breakdown;
+    const vel    = analyticsData.spending_velocity;
+    const oTrend = analyticsData.overall_trend;
+
+    // Bar chart
+    destroyChart('barChart');
+    if (trend.length) {
+        const ctx = document.getElementById('barChart').getContext('2d');
+        CHARTS['barChart'] = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels:   trend.map(d => d.month_label),
+                datasets: [
+                    { label:'Income',
+                      data:            trend.map(d => d.total_income),
+                      backgroundColor: 'rgba(22,163,74,.8)', borderRadius:4 },
+                    { label:'Expenses',
+                      data:            trend.map(d => d.total_expenses),
+                      backgroundColor: 'rgba(220,38,38,.8)', borderRadius:4 }
+                ]
+            },
+            options: {
+                responsive:true, maintainAspectRatio:false,
+                plugins:{ legend:{ position:'top' } },
+                scales:{ y:{ beginAtZero:true,
+                    ticks:{ callback: v => '₹'+v.toLocaleString('en-IN') } } }
+            }
+        });
+    }
+
+    // Pie chart
+    destroyChart('pieChart');
+    if (cats?.categories?.length) {
+        const ctx2 = document.getElementById('pieChart').getContext('2d');
+        CHARTS['pieChart'] = new Chart(ctx2, {
+            type: 'doughnut',
+            data: {
+                labels:   cats.categories.map(c => c.category_name),
+                datasets:[{
+                    data:            cats.categories.map(c => c.total_amount),
+                    backgroundColor: COLORS
+                }]
+            },
+            options:{
+                responsive:true, maintainAspectRatio:false,
+                plugins:{ legend:{ position:'bottom', labels:{ font:{size:11} } } }
+            }
+        });
+    }
+
+    // Velocity
+    const vBody = document.getElementById('velocityBody');
+    if (vel?.pattern !== 'no_data') {
+        vBody.innerHTML = `
+            <div class="mb-3">${vel?.insight || '—'}</div>
+            <div class="row g-2">
+              <div class="col-6">
+                <div class="stat-box">
+                  <div class="label">First Half (1–15)</div>
+                  <div class="value">${formatCurrency(vel?.first_half)}</div>
+                  <small class="text-muted">${vel?.first_pct}%</small>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="stat-box" style="border-color:#e63946">
+                  <div class="label">Second Half (16–31)</div>
+                  <div class="value">${formatCurrency(vel?.second_half)}</div>
+                  <small class="text-muted">${vel?.second_pct}%</small>
+                </div>
+              </div>
+            </div>`;
+    } else {
+        vBody.innerHTML = '<div class="text-muted small">No data for this month.</div>';
+    }
+
+    // Overall trend
+    const tBody = document.getElementById('trendBody');
+    if (oTrend?.trend && oTrend.trend !== 'no_data') {
+        const col = oTrend.trend === 'increasing' ? '#dc2626' :
+                    oTrend.trend === 'decreasing' ? '#16a34a' : '#64748b';
+        tBody.innerHTML = `
+            <div class="mb-2 fw-600" style="color:${col}">
+              ${oTrend.trend.charAt(0).toUpperCase() + oTrend.trend.slice(1)}
+            </div>
+            <p class="small text-muted mb-3">${oTrend.message}</p>
+            <div class="row g-2">
+              <div class="col-6">
+                <div class="stat-box">
+                  <div class="label">Monthly Average</div>
+                  <div class="value">${formatCurrency(oTrend.average_monthly)}</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="stat-box">
+                  <div class="label">Volatility</div>
+                  <div class="value">${oTrend.volatility || '—'}</div>
+                </div>
+              </div>
+            </div>`;
+    } else {
+        tBody.innerHTML = '<div class="text-muted small">Need more data to detect trend.</div>';
+    }
+
+    // Top expenses
+    const topEl  = document.getElementById('topExpenses');
+    const topExp = analyticsData.monthly_summary?.top_expenses || [];
+    if (topExp.length) {
+        topEl.innerHTML = `
+            <div class="table-responsive">
+              <table class="table table-sm mb-0">
+                <thead>
+                  <tr><th>Date</th><th>Category</th>
+                      <th>Amount</th><th>Note</th></tr>
+                </thead>
+                <tbody>
+                  ${topExp.map(t => `
+                    <tr>
+                      <td class="text-muted small">${t.date || '—'}</td>
+                      <td>${t.category_name || '—'}</td>
+                      <td class="text-danger fw-600">${formatCurrency(t.amount)}</td>
+                      <td class="text-muted small">${t.note || '—'}</td>
+                    </tr>`).join('')}
+                </tbody>
+              </table>
+            </div>`;
+    } else {
+        topEl.innerHTML = '<div class="text-center p-3 text-muted small">No data.</div>';
+    }
+}
+
+// ── CATEGORIES ───────────────────────────────
+function renderCategories() {
+    const cats    = analyticsData.category_breakdown;
+    const catTrnd = analyticsData.category_trends;
+
+    // Doughnut
+    destroyChart('catDoughnutChart');
+    if (cats?.categories?.length) {
+        const ctx = document.getElementById('catDoughnutChart').getContext('2d');
+        CHARTS['catDoughnutChart'] = new Chart(ctx, {
+            type:'doughnut',
+            data:{
+                labels:   cats.categories.map(c => c.category_name),
+                datasets:[{
+                    data:            cats.categories.map(c => c.total_amount),
+                    backgroundColor: COLORS
+                }]
+            },
+            options:{
+                responsive:true, maintainAspectRatio:false,
+                plugins:{ legend:{ position:'bottom' } }
+            }
+        });
+    }
+
+    // Detail table
+    const tbl = document.getElementById('catDetailTable');
+    if (cats?.categories?.length) {
+        tbl.innerHTML = `
+            <div class="table-responsive">
+              <table class="table table-sm mb-0">
+                <thead>
+                  <tr>
+                    <th>Category</th><th>Total</th>
+                    <th>Transactions</th><th>Average</th><th>% of Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${cats.categories.map(c => `
+                    <tr>
+                      <td class="fw-600">${c.category_name}</td>
+                      <td class="text-danger">${formatCurrency(c.total_amount)}</td>
+                      <td>${c.transaction_count}</td>
+                      <td class="text-muted">${formatCurrency(c.average_amount)}</td>
+                      <td>
+                        <div class="d-flex align-items-center gap-2">
+                          <div class="progress flex-fill budget-progress">
+                            <div class="progress-bar bg-primary"
+                                 style="width:${c.percentage}%"></div>
+                          </div>
+                          <small>${c.percentage}%</small>
+                        </div>
+                      </td>
+                    </tr>`).join('')}
+                </tbody>
+              </table>
+            </div>`;
+    } else {
+        tbl.innerHTML = '<div class="empty-state p-4"><i class="bi bi-inbox"></i><p>No expense data.</p></div>';
+    }
+
+    // Category trend line chart
+    destroyChart('catTrendChart');
+    if (catTrnd?.categories?.length) {
+        const ctx2 = document.getElementById('catTrendChart').getContext('2d');
+        const datasets = catTrnd.categories.slice(0, 6).map((cat, i) => ({
+            label:       cat,
+            data:        catTrnd.data[cat] || [],
+            borderColor: COLORS[i % COLORS.length],
+            backgroundColor: COLORS[i % COLORS.length] + '20',
+            tension: 0.4, borderWidth: 2, fill: false, pointRadius: 3
+        }));
+
+        CHARTS['catTrendChart'] = new Chart(ctx2, {
+            type:'line',
+            data:{ labels: catTrnd.months, datasets },
+            options:{
+                responsive:true, maintainAspectRatio:false,
+                plugins:{ legend:{ position:'bottom' } },
+                scales:{ y:{ beginAtZero:true,
+                    ticks:{ callback: v => '₹'+v.toLocaleString('en-IN') } } }
+            }
+        });
+    }
+}
+
+// ── TRENDS ───────────────────────────────────
+function renderTrends() {
+    const trend = analyticsData.monthly_trend || [];
+    const ratio = analyticsData.ratio || [];
+
+    // Trend line chart
+    destroyChart('trendLineChart');
+    if (trend.length) {
+        const ctx = document.getElementById('trendLineChart').getContext('2d');
+        CHARTS['trendLineChart'] = new Chart(ctx, {
+            type:'line',
+            data:{
+                labels:   trend.map(d => d.month_label),
+                datasets:[
+                    { label:'Income',
+                      data:            trend.map(d => d.total_income),
+                      borderColor:     '#16a34a', fill:true,
+                      backgroundColor: 'rgba(22,163,74,.1)',
+                      tension:0.4, borderWidth:2, pointRadius:4 },
+                    { label:'Expenses',
+                      data:            trend.map(d => d.total_expenses),
+                      borderColor:     '#dc2626', fill:true,
+                      backgroundColor: 'rgba(220,38,38,.1)',
+                      tension:0.4, borderWidth:2, pointRadius:4 }
+                ]
+            },
+            options:{
+                responsive:true, maintainAspectRatio:false,
+                plugins:{ legend:{ position:'top' } },
+                scales:{ y:{ ticks:{ callback: v => '₹'+v.toLocaleString('en-IN') } } }
+            }
+        });
+    }
+
+    // Savings rate chart
+    destroyChart('savingsRateChart');
+    if (trend.length) {
+        const ctx2 = document.getElementById('savingsRateChart').getContext('2d');
+        CHARTS['savingsRateChart'] = new Chart(ctx2, {
+            type:'bar',
+            data:{
+                labels:   trend.map(d => d.month_short),
+                datasets:[{
+                    label:           'Savings Rate %',
+                    data:            trend.map(d => d.savings_rate),
+                    backgroundColor: trend.map(d =>
+                        d.savings_rate >= 20 ? 'rgba(22,163,74,.8)' :
+                        d.savings_rate >= 0  ? 'rgba(234,179,8,.8)' :
+                        'rgba(220,38,38,.8)'
+                    ),
+                    borderRadius:4
+                }]
+            },
+            options:{
+                responsive:true, maintainAspectRatio:false,
+                plugins:{ legend:{ display:false } },
+                scales:{ y:{ ticks:{ callback: v => v+'%' } } }
+            }
+        });
+    }
+
+    // Ratio chart
+    destroyChart('ratioChart');
+    if (ratio.length) {
+        const ctx3 = document.getElementById('ratioChart').getContext('2d');
+        CHARTS['ratioChart'] = new Chart(ctx3, {
+            type:'line',
+            data:{
+                labels:   ratio.map(d => d.month_label),
+                datasets:[{
+                    label:      'Income/Expense Ratio',
+                    data:       ratio.map(d => d.ratio),
+                    borderColor:'#4361ee', borderWidth:2,
+                    tension:0.4, pointRadius:4,
+                    backgroundColor:'rgba(67,97,238,.1)', fill:true
+                }]
+            },
+            options:{
+                responsive:true, maintainAspectRatio:false,
+                plugins:{
+                    legend:{ display:false },
+                    annotation:{ annotations:{
+                        line1:{
+                            type:'line', yMin:1, yMax:1,
+                            borderColor:'rgba(220,38,38,.5)',
+                            borderDash:[5,5]
+                        }
+                    }}
+                },
+                scales:{ y:{
+                    ticks:{ callback: v => v+'x' }
+                }}
+            }
+        });
+    }
+
+    // Data table
+    const tbl = document.getElementById('trendTable');
+    if (trend.length) {
+        tbl.innerHTML = `
+            <div class="table-responsive">
+              <table class="table table-sm mb-0">
+                <thead>
+                  <tr>
+                    <th>Month</th><th>Income</th><th>Expenses</th>
+                    <th>Balance</th><th>Savings %</th><th>Expense Growth</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${trend.map(d => `
+                    <tr>
+                      <td class="fw-600">${d.month_label}</td>
+                      <td class="text-success">${formatCurrency(d.total_income)}</td>
+                      <td class="text-danger">${formatCurrency(d.total_expenses)}</td>
+                      <td class="${d.balance >= 0 ? 'text-success' : 'text-danger'}">
+                        ${formatCurrency(d.balance)}
+                      </td>
+                      <td>${d.savings_rate}%</td>
+                      <td>
+                        ${d.expense_growth !== undefined
+                            ? `<span class="${d.expense_growth > 0 ? 'text-danger' : 'text-success'}">
+                                 ${d.expense_growth > 0 ? '+' : ''}${d.expense_growth}%
+                               </span>`
+                            : '—'}
+                      </td>
+                    </tr>`).join('')}
+                </tbody>
+              </table>
+            </div>`;
+    }
+}
+
+// ── COMPARISON ───────────────────────────────
+function renderComparison() {
+    const cmp = analyticsData.comparison;
+    if (!cmp) return;
+
+    function cmpEl(id, data) {
+        const el = document.getElementById(id);
+        if (!el || !data) return;
+        const pct = data.percent || 0;
+        const dir = pct > 0 ? '+' : '';
+        el.textContent = `${dir}${pct.toFixed(1)}%`;
+        el.style.color = id.includes('Expense')
+            ? (pct > 0 ? '#dc2626' : '#16a34a')
+            : (pct > 0 ? '#16a34a' : '#dc2626');
+    }
+
+    cmpEl('cmpIncome',  cmp.changes?.income);
+    cmpEl('cmpExpense', cmp.changes?.expenses);
+    cmpEl('cmpBalance', cmp.changes?.balance);
+
+    // Category changes table
+    const catTbl = document.getElementById('cmpCatTable');
+    if (cmp.category_changes?.length) {
+        catTbl.innerHTML = `
+            <div class="table-responsive">
+              <table class="table table-sm mb-0">
+                <thead>
+                  <tr>
+                    <th>Category</th>
+                    <th>Previous</th><th>Current</th>
+                    <th>Change</th><th>Direction</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${cmp.category_changes.slice(0, 10).map(c => `
+                    <tr>
+                      <td class="fw-600">${c.category}</td>
+                      <td class="text-muted">${formatCurrency(c.previous)}</td>
+                      <td>${formatCurrency(c.current)}</td>
+                      <td class="${c.difference > 0 ? 'text-danger' : 'text-success'}">
+                        ${c.difference > 0 ? '+' : ''}${formatCurrency(c.difference)}
+                      </td>
+                      <td>
+                        <span class="type-badge ${c.direction === 'up' ? 'badge-expense' : c.direction === 'down' ? 'badge-income' : 'bg-light text-muted'}">
+                          ${c.direction === 'up' ? '▲ Up' : c.direction === 'down' ? '▼ Down' : '→ Same'}
+                        </span>
+                      </td>
+                    </tr>`).join('')}
+                </tbody>
+              </table>
+            </div>`;
+    }
+
+    // Comparison bar chart
+    destroyChart('comparisonChart');
+    const curr = cmp.current_month;
+    const prev = cmp.previous_month;
+
+    const ctx = document.getElementById('comparisonChart').getContext('2d');
+    CHARTS['comparisonChart'] = new Chart(ctx, {
+        type:'bar',
+        data:{
+            labels: ['Income', 'Expenses', 'Balance'],
+            datasets:[
+                { label: prev?.month_name || 'Previous',
+                  data:  [prev?.total_income, prev?.total_expenses,
+                          Math.max(prev?.balance || 0, 0)],
+                  backgroundColor:'rgba(100,116,139,.7)', borderRadius:4 },
+                { label: curr?.month_name || 'Current',
+                  data:  [curr?.total_income, curr?.total_expenses,
+                          Math.max(curr?.balance || 0, 0)],
+                  backgroundColor:'rgba(67,97,238,.8)', borderRadius:4 }
+            ]
+        },
+        options:{
+            responsive:true, maintainAspectRatio:false,
+            plugins:{ legend:{ position:'top' } },
+            scales:{ y:{ beginAtZero:true,
+                ticks:{ callback: v => '₹'+v.toLocaleString('en-IN') } } }
+        }
+    });
+}
+
+// ── BEHAVIOR ─────────────────────────────────
+function renderBehavior() {
+    const weekday   = analyticsData.weekday_analysis;
+    const adherence = analyticsData.budget_adherence;
+    const pct       = analyticsData.percentiles;
+
+    // Weekday bar chart
+    destroyChart('weekdayChart');
+    if (weekday?.by_day?.length) {
+        const ctx = document.getElementById('weekdayChart').getContext('2d');
+        CHARTS['weekdayChart'] = new Chart(ctx, {
+            type:'bar',
+            data:{
+                labels:   weekday.by_day.map(d => d.day.slice(0,3)),
+                datasets:[{
+                    label:'Total Spending',
+                    data:            weekday.by_day.map(d => d.total),
+                    backgroundColor: weekday.by_day.map(d =>
+                        d.day_index >= 5
+                            ? 'rgba(220,38,38,.8)'
+                            : 'rgba(67,97,238,.8)'
+                    ),
+                    borderRadius:4
+                }]
+            },
+            options:{
+                responsive:true, maintainAspectRatio:false,
+                plugins:{ legend:{ display:false } },
+                scales:{ y:{ beginAtZero:true,
+                    ticks:{ callback: v => '₹'+v.toLocaleString('en-IN') } } }
+            }
+        });
+    }
+
+    // Budget adherence
+    const adhEl = document.getElementById('adherenceBody');
+    if (adherence?.score !== null) {
+        const gradeColor = {
+            A:'#16a34a', B:'#22c55e', C:'#ca8a04', D:'#f97316', F:'#dc2626'
+        }[adherence.grade] || '#64748b';
+
+        adhEl.innerHTML = `
+            <div class="text-center mb-3">
+              <div style="font-size:3rem;font-weight:700;color:${gradeColor}">
+                ${adherence.grade}
+              </div>
+              <div style="font-size:1.2rem;color:${gradeColor}">
+                ${adherence.score}/100
+              </div>
+            </div>
+            <p class="text-muted small text-center">${adherence.message}</p>
+            <div class="progress mt-2" style="height:10px;border-radius:5px">
+              <div class="progress-bar"
+                   style="width:${adherence.score}%;background:${gradeColor}">
+              </div>
+            </div>
+            <small class="text-muted">
+              Based on ${adherence.months_tracked} month(s) of data
+            </small>`;
+    } else {
+        adhEl.innerHTML = `
+            <div class="text-center text-muted py-3">
+              <i class="bi bi-wallet2 fs-3 d-block mb-2"></i>
+              ${adherence?.message || 'Set a budget to track adherence.'}
+            </div>`;
+    }
+
+    // Percentile table
+    const pctEl = document.getElementById('percentileBody');
+    if (pct?.flagged?.length) {
+        pctEl.innerHTML = `
+            <div class="p-3 bg-warning bg-opacity-10 border-bottom small">
+              <i class="bi bi-info-circle me-1"></i>
+              Transactions above ₹${formatCurrency(pct.high_value_threshold)} (90th percentile)
+              of your spending — ${pct.flagged_count} of ${pct.total_records} transactions.
+            </div>
+            <div class="table-responsive">
+              <table class="table table-sm mb-0">
+                <thead>
+                  <tr><th>Date</th><th>Category</th><th>Amount</th><th>Note</th></tr>
+                </thead>
+                <tbody>
+                  ${pct.flagged.map(f => `
+                    <tr>
+                      <td class="text-muted small">${f.date}</td>
+                      <td>${f.category_name}</td>
+                      <td class="text-danger fw-600">${formatCurrency(f.amount)}</td>
+                      <td class="text-muted small">${f.note || '—'}</td>
+                    </tr>`).join('')}
+                </tbody>
+              </table>
+            </div>`;
+    } else {
+        pctEl.innerHTML = `
+            <div class="empty-state p-4">
+              <i class="bi bi-check-circle text-success"></i>
+              <p>No unusually large transactions found.</p>
+            </div>`;
+    }
+}
+
+// ── SAVINGS ──────────────────────────────────
+function renderSavings() {
+    const sav = analyticsData.savings;
+    if (!sav) return;
+
+    document.getElementById('savTotalGoals').textContent =
+        sav.summary?.total_goals || 0;
+    document.getElementById('savTotalSaved').textContent =
+        formatCurrency(sav.summary?.total_saved);
+    document.getElementById('savOverallPct').textContent =
+        (sav.overall_progress || 0).toFixed(1) + '%';
+
+    const detail = document.getElementById('savingsDetail');
+    if (!sav.goals?.length) {
+        detail.innerHTML = `
+            <div class="empty-state p-4">
+              <i class="bi bi-piggy-bank"></i>
+              <p>No savings goals. <a href="savings.html">Create one →</a></p>
+            </div>`;
+        return;
+    }
+
+    detail.innerHTML = `
+        <div class="table-responsive">
+          <table class="table mb-0">
+            <thead>
+              <tr>
+                <th>Goal</th><th>Saved</th><th>Target</th>
+                <th>Progress</th><th>Monthly Needed</th><th>Deadline</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${sav.goals.map(g => `
+                <tr>
+                  <td class="fw-600">
+                    ${g.is_complete
+                        ? '<i class="bi bi-check-circle-fill text-success me-1"></i>'
+                        : ''}
+                    ${g.name}
+                  </td>
+                  <td class="text-success">${formatCurrency(g.saved_amount)}</td>
+                  <td>${formatCurrency(g.target_amount)}</td>
+                  <td>
+                    <div class="d-flex align-items-center gap-2">
+                      <div class="progress flex-fill budget-progress">
+                        <div class="progress-bar ${g.is_complete ? 'bg-success' : 'bg-primary'}"
+                             style="width:${g.progress_percentage}%"></div>
+                      </div>
+                      <small>${g.progress_percentage.toFixed(1)}%</small>
+                    </div>
+                  </td>
+                  <td class="text-muted small">
+                    ${g.monthly_needed ? formatCurrency(g.monthly_needed) + '/mo' : '—'}
+                  </td>
+                  <td class="text-muted small">
+                    ${g.deadline || '—'}
+                    ${g.is_overdue
+                        ? '<span class="badge bg-danger ms-1">Overdue</span>'
+                        : ''}
+                  </td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`;
+}
+</script>
+</body>
+</html>

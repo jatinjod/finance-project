@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
+
+<title>AI Chat — FinanceAI</title>
+
+
+<link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+>
+
+<link
+    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css"
+    rel="stylesheet"
+>
+
+<link
+    rel="stylesheet"
+    href="../css/style.css"
+>
+
+
+<style>
+
+.chat-shell {
+    max-width: 1050px;
+    margin: 0 auto;
+}
+
+.chat-hero {
+    background: linear-gradient(
+        135deg,
+        #4361ee,
+        #3a0ca3
+    );
+    color: #fff;
+    border-radius: 18px;
+    padding: 26px;
+    margin-bottom: 18px;
+}
+
+.chat-window {
+    height: 560px;
+    overflow-y: auto;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 20px;
+}
+
+.message-row {
+    display: flex;
+    margin-bottom: 16px;
+}
+
+.message-row.user {
+    justify-content: flex-end;
+}
+
+.message-bubble {
+    max-width: 78%;
+    padding: 12px 15px;
+    border-radius: 16px;
+    white-space: pre-wrap;
+    line-height: 1.5;
+    font-size: .92rem;
+}
+
+.message-row.bot .message-bubble {
+    background: #fff;
+    color: #1e293b;
+    border: 1px solid #e2e8f0;
+    border-bottom-left-radius: 5px;
+}
+
+.message-row.user .message-bubble {
+    background: #4361ee;
+    color: #fff;
+    border-bottom-right-radius: 5px;
+}
+
+.message-meta {
+    font-size: .7rem;
+    color: #94a3b8;
+    margin-top: 4px;
+}
+
+.bot-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: #eef2ff;
+    color: #4361ee;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 9px;
+    flex-shrink: 0;
+}
+
+.quick-prompt {
+    border: 1px solid #dbe4ff;
+    background: #f5f7ff;
+    color: #334155;
+    border-radius: 999px;
+    padding: 7px 12px;
+    font-size: .78rem;
+    cursor: pointer;
+}
+
+.quick-prompt:hover {
+    background: #e9edff;
+}
+
+.chat-input-wrap {
+    background: #fff;
+    border: 1px solid #dbe4ff;
+    border-radius: 14px;
+    padding: 10px;
+}
+
+.chat-input {
+    border: none;
+    resize: none;
+    box-shadow: none !important;
+}
+
+.typing-dots span {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-right: 3px;
+    border-radius: 50%;
+    background: #94a3b8;
+    animation: blink 1.2s infinite;
+}
+
+.typing-dots span:nth-child(2) {
+    animation-delay: .2s;
+}
+
+.typing-dots span:nth-child(3) {
+    animation-delay: .4s;
+}
+
+@keyframes blink {
+    0%, 80%, 100% {
+        opacity: .25;
+    }
+
+    40% {
+        opacity: 1;
+    }
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div id="sidebar" class="sidebar"></div>
+
+
+<div class="main-content">
+
+
+    <div class="topbar">
+
+        <span class="topbar-title">
+            AI Chat
+        </span>
+
+        <div class="topbar-right">
+
+            <button
+                class="btn btn-sm btn-outline-danger"
+                onclick="clearChat()"
+            >
+                <i class="bi bi-trash3 me-1"></i>
+                Clear
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <div class="page-body">
+
+
+        <div class="chat-shell">
+
+
+            <!-- HERO -->
+
+            <div class="chat-hero">
+
+                <div class="d-flex align-items-center gap-3">
+
+                    <div
+                        style="
+                        width:54px;
+                        height:54px;
+                        border-radius:14px;
+                        background:rgba(255,255,255,.16);
+                        display:flex;
+                        align-items:center;
+                        justify-content:center;
+                        font-size:1.5rem;
+                        "
+                    >
+
+                        <i class="bi bi-robot"></i>
+
+                    </div>
+
+
+                    <div>
+
+                        <div class="small opacity-75">
+                            FINANCEAI ASSISTANT
+                        </div>
+
+                        <h4 class="mb-1">
+                            Ask me anything about your money
+                        </h4>
+
+                        <p class="mb-0 opacity-75 small">
+                            I can analyze your spending, savings,
+                            budget and financial goals.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- QUICK PROMPTS -->
+
+            <div class="card mb-3">
+
+                <div class="card-body">
+
+                    <div class="small text-muted mb-2">
+                        Try asking
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2">
+
+                        <button
+                            class="quick-prompt"
+                            onclick="usePrompt('Where am I spending the most money?')"
+                        >
+                            Where am I spending the most?
+                        </button>
+
+                        <button
+                            class="quick-prompt"
+                            onclick="usePrompt('How can I reduce my monthly expenses?')"
+                        >
+                            Reduce my expenses
+                        </button>
+
+                        <button
+                            class="quick-prompt"
+                            onclick="usePrompt('Am I saving enough based on my current data?')"
+                        >
+                            Am I saving enough?
+                        </button>
+
+                        <button
+                            class="quick-prompt"
+                            onclick="usePrompt('Help me plan for my savings goals.')"
+                        >
+                            Help with savings goals
+                        </button>
+
+                        <button
+                            class="quick-prompt"
+                            onclick="usePrompt('Explain my current financial health.')"
+                        >
+                            Explain my financial health
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- CHAT -->
+
+            <div class="card">
+
+                <div
+                    id="chatWindow"
+                    class="chat-window"
+                ></div>
+
+
+                <div class="card-body border-top">
+
+                    <form id="chatForm">
+
+                        <div class="chat-input-wrap">
+
+                            <textarea
+                                id="messageInput"
+                                class="form-control chat-input"
+                                rows="2"
+                                maxlength="2000"
+                                placeholder="Ask FinanceAI something..."
+                            ></textarea>
+
+
+                            <div
+                                class="d-flex justify-content-between align-items-center mt-2"
+                            >
+
+                                <small class="text-muted">
+                                    Enter to send · Shift+Enter for new line
+                                </small>
+
+
+                                <button
+                                    type="submit"
+                                    id="sendBtn"
+                                    class="btn btn-primary"
+                                >
+
+                                    <span id="sendText">
+                                        Send
+                                    </span>
+
+                                    <span
+                                        id="sendSpinner"
+                                        class="spinner-border spinner-border-sm ms-1 d-none"
+                                    ></span>
+
+                                    <i class="bi bi-send ms-1"></i>
+
+                                </button>
+
+                            </div>
+
+                        </div>
+
+                    </form>
+
+
+                    <div
+                        id="errorBox"
+                        class="mt-3"
+                    ></div>
+
+
+                    <div class="small text-muted mt-3">
+
+                        <i class="bi bi-shield-check me-1"></i>
+
+                        FinanceAI uses your application data to
+                        provide financial guidance. Investment
+                        responses are educational and are not
+                        guaranteed recommendations.
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
+></script>
+
+<script src="../js/api.js"></script>
+
+<script src="../js/auth.js"></script>
+
+<script src="../js/sidebar.js"></script>
+
+
+<script>
+
+let conversation = [];
+
+let waiting = false;
+
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        if (
+            typeof requireAuth ===
+            "function"
+        ) {
+
+            if (!requireAuth()) {
+                return;
+            }
+
+        }
+
+
+        if (
+            typeof renderSidebar ===
+            "function"
+        ) {
+
+            renderSidebar(
+                "chat"
+            );
+
+        }
+
+
+        if (
+            typeof loadNotifBadge ===
+            "function"
+        ) {
+
+            loadNotifBadge();
+
+        }
+
+
+        addBotMessage(
+            "Hi! I'm FinanceAI 👋\\n\\n" +
+            "Ask me about your expenses, budget, " +
+            "savings goals or financial planning."
+        );
+
+
+        document
+            .getElementById(
+                "messageInput"
+            )
+            .focus();
+
+    }
+);
+
+
+function addMessage(
+    role,
+    text
+) {
+
+    const windowEl =
+        document.getElementById(
+            "chatWindow"
+        );
+
+
+    const row =
+        document.createElement(
+            "div"
+        );
+
+
+    row.className =
+        `message-row ${role}`;
+
+
+    if (role === "bot") {
+
+        const avatar =
+            document.createElement(
+                "div"
+            );
+
+
+        avatar.className =
+            "bot-avatar";
+
+
+        avatar.innerHTML =
+            '<i class="bi bi-robot"></i>';
+
+
+        row.appendChild(
+            avatar
+        );
+
+    }
+
+
+    const bubble =
+        document.createElement(
+            "div"
+        );
+
+
+    bubble.className =
+        "message-bubble";
+
+
+    bubble.textContent =
+        text;
+
+
+    row.appendChild(
+        bubble
+    );
+
+
+    windowEl.appendChild(
+        row
+    );
+
+
+    windowEl.scrollTop =
+        windowEl.scrollHeight;
+
+}
+
+
+function addUserMessage(
+    text
+) {
+
+    addMessage(
+        "user",
+        text
+    );
+
+}
+
+
+function addBotMessage(
+    text
+) {
+
+    addMessage(
+        "bot",
+        text
+    );
+
+}
+
+
+function addTyping() {
+
+    const windowEl =
+        document.getElementById(
+            "chatWindow"
+        );
+
+
+    const row =
+        document.createElement(
+            "div"
+        );
+
+
+    row.id =
+        "typingRow";
+
+
+    row.className =
+        "message-row bot";
+
+
+    row.innerHTML = `
+
+        <div class="bot-avatar">
+            <i class="bi bi-robot"></i>
+        </div>
+
+        <div class="message-bubble">
+
+            <div class="typing-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+
+        </div>
+
+    `;
+
+
+    windowEl.appendChild(
+        row
+    );
+
+
+    windowEl.scrollTop =
+        windowEl.scrollHeight;
+
+}
+
+
+function removeTyping() {
+
+    const row =
+        document.getElementById(
+            "typingRow"
+        );
+
+
+    if (row) {
+        row.remove();
+    }
+
+}
+
+
+function usePrompt(
+    text
+) {
+
+    const input =
+        document.getElementById(
+            "messageInput"
+        );
+
+
+    input.value =
+        text;
+
+
+    input.focus();
+
+}
+
+
+function showError(
+    message
+) {
+
+    document.getElementById(
+        "errorBox"
+    ).innerHTML = `
+
+        <div class="alert alert-danger mb-0">
+            ${escapeHtml(message)}
+        </div>
+
+    `;
+
+}
+
+
+function escapeHtml(
+    value
+) {
+
+    return String(
+        value ?? ""
+    )
+    .replace(
+        /&/g,
+        "&amp;"
+    )
+    .replace(
+        /</g,
+        "&lt;"
+    )
+    .replace(
+        />/g,
+        "&gt;"
+    )
+    .replace(
+        /"/g,
+        "&quot;"
+    )
+    .replace(
+        /'/g,
+        "&#039;"
+    );
+
+}
+
+
+function clearChat() {
+
+    conversation = [];
+
+    document.getElementById(
+        "chatWindow"
+    ).innerHTML = "";
+
+
+    addBotMessage(
+        "Chat cleared ✅\\n\\n" +
+        "What would you like to know about your finances?"
+    );
+
+}
+
+
+document
+    .getElementById(
+        "chatForm"
+    )
+    .addEventListener(
+        "submit",
+        async function (event) {
+
+            event.preventDefault();
+
+
+            if (waiting) {
+                return;
+            }
+
+
+            const input =
+                document.getElementById(
+                    "messageInput"
+                );
+
+
+            const sendBtn =
+                document.getElementById(
+                    "sendBtn"
+                );
+
+
+            const sendText =
+                document.getElementById(
+                    "sendText"
+                );
+
+
+            const spinner =
+                document.getElementById(
+                    "sendSpinner"
+                );
+
+
+            const message =
+                input.value.trim();
+
+
+            if (!message) {
+                return;
+            }
+
+
+            document.getElementById(
+                "errorBox"
+            ).innerHTML = "";
+
+
+            waiting = true;
+
+            sendBtn.disabled =
+                true;
+
+            sendText.textContent =
+                "Thinking...";
+
+            spinner.classList.remove(
+                "d-none"
+            );
+
+
+            addUserMessage(
+                message
+            );
+
+
+            conversation.push({
+
+                role: "user",
+
+                content: message
+
+            });
+
+
+            input.value = "";
+
+
+            addTyping();
+
+
+            try {
+
+                const response =
+                    await API.post(
+                        "/api/ai/chat",
+                        {
+                            message:
+                                message,
+
+                            history:
+                                conversation.slice(
+                                    -12
+                                )
+                        }
+                    );
+
+
+                removeTyping();
+
+
+                if (
+                    !response ||
+                    response.status !==
+                    "success" ||
+                    !response.data
+                ) {
+
+                    showError(
+                        response?.error ||
+                        "Unable to get a response."
+                    );
+
+                    conversation.pop();
+
+                    return;
+                }
+
+
+                const reply =
+                    String(
+                        response.data.reply ||
+                        ""
+                    ).trim();
+
+
+                if (!reply) {
+
+                    showError(
+                        "AI returned an empty response."
+                    );
+
+                    conversation.pop();
+
+                    return;
+                }
+
+
+                addBotMessage(
+                    reply
+                );
+
+
+                conversation.push({
+
+                    role: "assistant",
+
+                    content: reply
+
+                });
+
+
+            } catch (error) {
+
+                console.error(
+                    "AI CHAT ERROR:",
+                    error
+                );
+
+
+                removeTyping();
+
+
+                showError(
+                    "Unable to connect to the AI service."
+                );
+
+
+                conversation.pop();
+
+
+            } finally {
+
+                waiting = false;
+
+                sendBtn.disabled =
+                    false;
+
+                sendText.textContent =
+                    "Send";
+
+                spinner.classList.add(
+                    "d-none"
+                );
+
+
+                input.focus();
+
+            }
+
+        }
+    );
+
+
+document
+    .getElementById(
+        "messageInput"
+    )
+    .addEventListener(
+        "keydown",
+        function (event) {
+
+            if (
+                event.key ===
+                "Enter"
+                &&
+                !event.shiftKey
+            ) {
+
+                event.preventDefault();
+
+                document
+                    .getElementById(
+                        "chatForm"
+                    )
+                    .requestSubmit();
+
+            }
+
+        }
+    );
+
+</script>
+
+
+</body>
+</html>
