@@ -362,6 +362,7 @@ def init_db(app):
             ("Business", "income"),
             ("Investment", "income"),
             ("Gift", "income"),
+            ("Other", "income"),
 
             ("Food", "expense"),
             ("Transport", "expense"),
