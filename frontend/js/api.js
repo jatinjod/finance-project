@@ -1,11 +1,7 @@
 // frontend/js/api.js
 // Central API communication layer with error handling
 
-const API_BASE =
-    (window.location.hostname === 'localhost' ||
-     window.location.hostname === '127.0.0.1')
-        ? 'https://finance-project-zf24.onrender.com'
-        : `http://${window.location.hostname}:5000`;
+const API_BASE = 'https://finance-project-zf24.onrender.com';
 
 // ─────────────────────────────────────────────
 // TOKEN MANAGEMENT
