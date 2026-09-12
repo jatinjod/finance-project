@@ -434,7 +434,7 @@ function updateExportLinks() {
     const m   = document.getElementById('selMonth').value;
     const y   = document.getElementById('selYear').value;
     const tok = getToken();
-    const base = `http://localhost:5000`;
+    const base = 'https://finance-project-zf24.onrender.com';
 
     document.getElementById('exportCsvBtn').href =
         `${base}/api/analytics/export/csv?month=${m}&year=${y}`;
