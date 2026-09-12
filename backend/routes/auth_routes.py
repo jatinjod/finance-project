@@ -4,10 +4,10 @@
 import hashlib
 import re
 import secrets
-import smtplib
 
 from datetime import timedelta
-from email.message import EmailMessage
+
+import resend
 
 from flask import Blueprint, jsonify, request, current_app
 
@@ -365,92 +365,149 @@ def forgot_password():
 
 
 # ============================================================
-# SEND PASSWORD RESET EMAIL
+# SEND PASSWORD RESET EMAIL — RESEND API
 # ============================================================
 
 def send_password_reset_email(recipient, reset_url):
 
-    smtp_host = current_app.config.get(
-        "SMTP_HOST",
-        "",
-    )
-
-    smtp_port = current_app.config.get(
-        "SMTP_PORT",
-        587,
-    )
-
-    smtp_username = current_app.config.get(
-        "SMTP_USERNAME",
-        "",
-    )
-
-    smtp_password = current_app.config.get(
-        "SMTP_PASSWORD",
-        "",
+    resend_api_key = current_app.config.get(
+        "RESEND_API_KEY",
+        ""
     )
 
     mail_from = current_app.config.get(
-        "MAIL_FROM",
-        smtp_username,
+        "RESEND_FROM_EMAIL",
+        "onboarding@resend.dev"
     )
 
-    use_tls = current_app.config.get(
-        "SMTP_USE_TLS",
-        True,
-    )
-
-    if not smtp_host:
+    if not resend_api_key:
         raise RuntimeError(
-            "SMTP is not configured"
-        )
-
-    if not smtp_username or not smtp_password:
-        raise RuntimeError(
-            "SMTP username/password are not configured"
+            "RESEND_API_KEY is not configured"
         )
 
     if not mail_from:
         raise RuntimeError(
-            "MAIL_FROM is not configured"
+            "RESEND_FROM_EMAIL is not configured"
         )
 
-    message = EmailMessage()
+    resend.api_key = resend_api_key
 
-    message["Subject"] = "FinanceAI Password Reset"
-    message["From"] = mail_from
-    message["To"] = recipient
+    ttl_minutes = current_app.config[
+        "RESET_TOKEN_TTL_MINUTES"
+    ]
 
-    message.set_content(
-        "You requested a password reset for your "
-        "FinanceAI account.\n\n"
-        "Reset your password using this link:\n\n"
-        f"{reset_url}\n\n"
-        "This link expires in "
-        f"{current_app.config['RESET_TOKEN_TTL_MINUTES']} "
-        "minutes and can only be used once.\n\n"
-        "If you did not request this email, "
-        "you can safely ignore it."
-    )
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport"
+              content="width=device-width, initial-scale=1.0">
+        <title>FinanceAI Password Reset</title>
+    </head>
 
-    with smtplib.SMTP(
-        smtp_host,
-        smtp_port,
-        timeout=20,
-    ) as server:
+    <body style="
+        margin:0;
+        padding:0;
+        background:#f4f7fb;
+        font-family:Arial,Helvetica,sans-serif;
+    ">
 
-        server.ehlo()
+        <div style="
+            max-width:600px;
+            margin:40px auto;
+            background:#ffffff;
+            border-radius:12px;
+            padding:32px;
+            box-shadow:0 4px 18px rgba(0,0,0,0.08);
+        ">
 
-        if use_tls:
-            server.starttls()
-            server.ehlo()
+            <h2 style="
+                margin-top:0;
+                color:#2563eb;
+            ">
+                FinanceAI Password Reset
+            </h2>
 
-        server.login(
-            smtp_username,
-            smtp_password,
+            <p style="color:#334155;font-size:16px;">
+                You requested a password reset for your
+                FinanceAI account.
+            </p>
+
+            <p style="color:#334155;font-size:16px;">
+                Click the button below to create a new password:
+            </p>
+
+            <div style="text-align:center;margin:30px 0;">
+                <a href="{reset_url}" style="
+                    display:inline-block;
+                    padding:12px 24px;
+                    background:#2563eb;
+                    color:#ffffff;
+                    text-decoration:none;
+                    border-radius:8px;
+                    font-weight:600;
+                ">
+                    Reset Password
+                </a>
+            </div>
+
+            <p style="
+                color:#64748b;
+                font-size:14px;
+                line-height:1.6;
+            ">
+                This link expires in
+                <strong>{ttl_minutes} minutes</strong>
+                and can only be used once.
+            </p>
+
+            <p style="
+                color:#64748b;
+                font-size:14px;
+                line-height:1.6;
+            ">
+                If you did not request this password reset,
+                you can safely ignore this email.
+            </p>
+
+            <hr style="
+                border:none;
+                border-top:1px solid #e2e8f0;
+                margin:25px 0;
+            ">
+
+            <p style="
+                color:#94a3b8;
+                font-size:12px;
+                word-break:break-all;
+            ">
+                If the button does not work, copy and open this link:
+                <br><br>
+                {reset_url}
+            </p>
+
+        </div>
+
+    </body>
+    </html>
+    """
+
+    params = {
+        "from": mail_from,
+        "to": [recipient],
+        "subject": "FinanceAI Password Reset",
+        "html": html_content,
+    }
+
+    result = resend.Emails.send(params)
+
+    if not result:
+        raise RuntimeError(
+            "Resend did not return a response"
         )
 
-        server.send_message(message)
+    return result
 
 
 # ============================================================
