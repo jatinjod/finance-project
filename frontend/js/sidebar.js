@@ -74,21 +74,24 @@ function renderSidebar(active) {
 }
 
 function setupMobileMenu() {
+    const topbar = document.querySelector('.topbar');
+
+    if (!topbar) return;
+
     let menuBtn = document.querySelector('.mobile-menu-btn');
 
-    // Dashboard par manual button ho sakta hai,
-    // baaki pages par button automatically create hoga.
     if (!menuBtn) {
         menuBtn = document.createElement('button');
         menuBtn.className = 'mobile-menu-btn';
         menuBtn.innerHTML = '<i class="bi bi-list"></i>';
         menuBtn.setAttribute('aria-label', 'Open menu');
-        document.body.appendChild(menuBtn);
+
+        // Button ko topbar ke andar rakho
+        topbar.insertBefore(menuBtn, topbar.firstChild);
     }
 
     menuBtn.onclick = toggleMobileSidebar;
 
-    // Menu item click karne par mobile sidebar close
     document.querySelectorAll('.sidebar-nav a').forEach(link => {
         link.addEventListener('click', () => {
             const sidebar = document.getElementById('sidebar');

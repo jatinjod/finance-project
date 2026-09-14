@@ -518,18 +518,17 @@ body {
   display: none;
   align-items: center;
   justify-content: center;
-  position: fixed;
-  top: 10px;
-  left: 12px;
   width: 42px;
   height: 42px;
+  margin-right: 12px;
   border: none;
   border-radius: 8px;
   background: var(--primary);
   color: #fff;
   font-size: 1.3rem;
   cursor: pointer;
-  z-index: 1100;
+  flex-shrink: 0;
+  z-index: 1101;
 }
 
 @media (max-width: 768px) {
@@ -554,7 +553,7 @@ body {
   }
 
   .topbar {
-    padding-left: 68px;
+    padding-left: 12px;
   }
 
   .page-body {
