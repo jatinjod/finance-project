@@ -194,7 +194,7 @@ else:
 print("\n2. Authentication")
 
 test_email = "integration_test_user@example.com"
-test_password = "password123"
+SECRET_VALUE = os.getenv("SECRET_VALUE")
 
 login_response, token = register_if_needed(
     test_email,
