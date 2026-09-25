@@ -801,7 +801,7 @@ isolation_email = (
     "isolation_test_user@example.com"
 )
 
-isolation_password = "password123"
+SECRET_VALUE = os.getenv("SECRET_VALUE")
 
 isolation_login, isolation_token = (
     register_if_needed(
