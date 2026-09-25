@@ -244,7 +244,7 @@ class TestingConfig(Config):
 
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
 
-    JWT_SECRET_KEY = "test-jwt-secret"
+    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 
 
 # ============================================================
